@@ -5,10 +5,21 @@ edition = "2024"
 
 [dependencies]
 
-[profile.release]
-opt-level = 3          # max optimizations
-lto = "fat"            # best runtime speed, slower builds
-codegen-units = 1      # better optimization, slower compile
-debug = false
-incremental = false
-panic = "abort"
+[dev-dependencies]
+criterion = "0.8.0"
+
+[[bin]]
+name = "aoc-2025"
+path = "src/bin/main.rs"
+
+# [profile.release]
+# opt-level = 3          # max optimizations
+# lto = "fat"            # best runtime speed, slower builds
+# codegen-units = 1      # better optimization, slower compile
+# debug = false
+# incremental = false
+# panic = "abort"
+
+[[bench]]
+name = "day01"
+harness = false
