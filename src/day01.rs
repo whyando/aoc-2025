@@ -14,15 +14,26 @@ pub fn solve(input: &str) -> (i32, i32) {
         };
 
         let x1 = x + steps * dir;
-        let mut passes = (x.div_euclid(100) - x1.div_euclid(100)).abs();
-        if x1.rem_euclid(100) == 0 && dir == -1 {
-            passes += 1;
-        }
-        if x.rem_euclid(100) == 0 && dir == -1 {
-            passes -= 1;
-        }
 
-        // println!("({},{}) -> ({},{}) passes: {}", x.div_euclid(100), x.rem_euclid(100), x1.div_euclid(100), x1.rem_euclid(100), passes);
+        let passes = if dir == -1 {
+            ((x - 1).div_euclid(100) - (x1 - 1).div_euclid(100)).abs()
+        } else {
+            (x1.div_euclid(100) - x.div_euclid(100)).abs()
+        };
+
+        // let mut passes1 = (x.div_euclid(100) - x1.div_euclid(100)).abs();
+        // if x1.rem_euclid(100) == 0 && dir == -1 {
+        //     passes1 += 1;
+        // }
+        // if x.rem_euclid(100) == 0 && dir == -1 {
+        //     passes1 -= 1;
+        // }
+
+        // if passes1 != passes {
+        //     println!("({},{}) -> ({},{})", x.div_euclid(100), x.rem_euclid(100), x1.div_euclid(100), x1.rem_euclid(100));
+        //     println!("passes: {}", passes);
+        //     println!("passes1: {}", passes1);
+        // }
 
         if x % 100 == 0 {
             part1 += 1;
