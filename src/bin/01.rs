@@ -1,12 +1,12 @@
-fn main() {
-    let input = std::fs::read_to_string("inputs/01.txt").unwrap();
-    let part1 = part1(&input);
-    println!("Part 1: {}", part1);
-    assert_eq!(part1, 1120);
+use std::io::Read as _;
 
-    let part2 = part2(&input);
-    println!("Part 2: {}", part2);
-    assert_eq!(part2, 6554);
+fn main() {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap(); // read all of stdin
+
+    let p1 = part1(&input);
+    let p2 = part2(&input);
+    println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
 }
 
 fn parse(input_string: &str) -> Vec<(char, i32)> {
@@ -65,6 +65,13 @@ fn part2(input_string: &str) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test() {
+        let input = std::fs::read_to_string("inputs/01.txt").unwrap();
+        assert_eq!(part1(&input), 1120);
+        assert_eq!(part2(&input), 6554);
+    }
 
     #[test]
     fn test_part1() {
