@@ -1,5 +1,5 @@
 use aoc_2025::day01;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 
 fn bench_day01(c: &mut Criterion) {

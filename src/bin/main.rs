@@ -1,4 +1,3 @@
-
 fn main() {
     let aoc_day = std::env::var("AOC_DAY").unwrap();
     let aoc_input = std::env::var("AOC_INPUT").unwrap();
