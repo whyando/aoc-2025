@@ -1,12 +1,9 @@
-use std::io::Read as _;
 
-fn main() {
-    let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).unwrap(); // read all of stdin
-
-    let p1 = part1(&input);
-    let p2 = part2(&input);
-    println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+pub fn solve(input: &str) -> (i32, i32) {
+    let rotations = parse(input);
+    let p1 = part1(&rotations);
+    let p2 = part2(&rotations);
+    (p1, p2)
 }
 
 fn parse(input_string: &str) -> Vec<(char, i32)> {
@@ -21,9 +18,7 @@ fn parse(input_string: &str) -> Vec<(char, i32)> {
         .collect::<Vec<_>>()
 }
 
-fn part1(input_string: &str) -> i32 {
-    let rotations = parse(input_string);
-
+fn part1(rotations: &[(char, i32)]) -> i32 {
     let mut result = 0;
     let mut x = 50;
     for (direction, steps) in rotations {
@@ -40,9 +35,7 @@ fn part1(input_string: &str) -> i32 {
     result
 }
 
-fn part2(input_string: &str) -> i32 {
-    let rotations = parse(input_string);
-
+fn part2(rotations: &[(char, i32)]) -> i32 {
     let mut result = 0;
     let mut x = 50;
     for (direction, steps) in rotations {
@@ -52,7 +45,7 @@ fn part2(input_string: &str) -> i32 {
             _ => panic!("Invalid direction: {}", direction),
         };
 
-        for _ in 0..steps {
+        for _ in 0..*steps {
             x += dir;
             if x % 100 == 0 {
                 result += 1;
@@ -69,8 +62,7 @@ mod tests {
     #[test]
     fn test() {
         let input = std::fs::read_to_string("inputs/01.txt").unwrap();
-        assert_eq!(part1(&input), 1120);
-        assert_eq!(part2(&input), 6554);
+        assert_eq!(solve(&input), (1120, 6554));
     }
 
     #[test]
@@ -85,7 +77,7 @@ L1
 L99
 R14
 L82";
-        assert_eq!(part1(test_input), 3);
-        assert_eq!(part2(test_input), 6);
+
+    assert_eq!(solve(&test_input), (3, 6));
     }
 }
