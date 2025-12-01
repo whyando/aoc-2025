@@ -1,57 +1,29 @@
 pub fn solve(input: &str) -> (i32, i32) {
-    let rotations = parse(input);
-    let p1 = part1(&rotations);
-    let p2 = part2(&rotations);
-    (p1, p2)
-}
+    let mut part1 = 0;
+    let mut part2 = 0;
 
-fn parse(input_string: &str) -> Vec<(char, i32)> {
-    input_string
-        .lines()
-        .map(|line| {
-            let (direction, steps) = line.split_at(1);
-            let direction = direction.chars().next().unwrap();
-            let steps = steps.parse::<i32>().unwrap();
-            (direction, steps)
-        })
-        .collect::<Vec<_>>()
-}
-
-fn part1(rotations: &[(char, i32)]) -> i32 {
-    let mut result = 0;
     let mut x = 50;
-    for (direction, steps) in rotations {
-        match direction {
-            'L' => x -= steps,
-            'R' => x += steps,
-            _ => panic!("Invalid direction: {}", direction),
-        }
-        x = (x + 100) % 100;
-        if x == 0 {
-            result += 1;
-        }
-    }
-    result
-}
-
-fn part2(rotations: &[(char, i32)]) -> i32 {
-    let mut result = 0;
-    let mut x = 50;
-    for (direction, steps) in rotations {
+    for line in input.lines() {
+        let (direction, steps) = line.split_at(1);
+        let direction = direction.chars().next().unwrap();
+        let steps = steps.parse::<i32>().unwrap();
         let dir = match direction {
             'L' => -1,
             'R' => 1,
             _ => panic!("Invalid direction: {}", direction),
         };
 
-        for _ in 0..*steps {
+        for _ in 0..steps {
             x += dir;
             if x % 100 == 0 {
-                result += 1;
+                part2 += 1;
             }
         }
+        if x % 100 == 0 {
+            part1 += 1;
+        }
     }
-    result
+    (part1, part2)
 }
 
 #[cfg(test)]
