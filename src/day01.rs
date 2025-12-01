@@ -13,15 +13,22 @@ pub fn solve(input: &str) -> (i32, i32) {
             _ => panic!("Invalid direction: {}", direction),
         };
 
-        for _ in 0..steps {
-            x += dir;
-            if x % 100 == 0 {
-                part2 += 1;
-            }
+        let x1 = x + steps * dir;
+        let mut passes = (x.div_euclid(100) - x1.div_euclid(100)).abs();
+        if x1.rem_euclid(100) == 0 && dir == -1 {
+            passes += 1;
         }
+        if x.rem_euclid(100) == 0 && dir == -1 {
+            passes -= 1;
+        }
+
+        // println!("({},{}) -> ({},{}) passes: {}", x.div_euclid(100), x.rem_euclid(100), x1.div_euclid(100), x1.rem_euclid(100), passes);
+
         if x % 100 == 0 {
             part1 += 1;
         }
+        part2 += passes as i32;
+        x = x1;
     }
     (part1, part2)
 }
