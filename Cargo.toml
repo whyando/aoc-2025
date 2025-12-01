@@ -4,3 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+[profile.release]
+opt-level = 3          # max optimizations
+lto = "fat"            # best runtime speed, slower builds
+codegen-units = 1      # better optimization, slower compile
+debug = false
+incremental = false
+panic = "abort"
