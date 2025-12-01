@@ -1,4 +1,3 @@
-
 pub fn solve(input: &str) -> (i32, i32) {
     let rotations = parse(input);
     let p1 = part1(&rotations);
@@ -78,6 +77,6 @@ L99
 R14
 L82";
 
-    assert_eq!(solve(&test_input), (3, 6));
+        assert_eq!(solve(&test_input), (3, 6));
     }
 }
