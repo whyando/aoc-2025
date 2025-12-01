@@ -1,6 +1,8 @@
 fn main() {
     let aoc_day = std::env::var("AOC_DAY").unwrap();
     let aoc_input = std::env::var("AOC_INPUT").unwrap();
+    // let aoc_day = "1";
+    // let aoc_input = "inputs/01.txt";
 
     let input = std::fs::read_to_string(aoc_input).unwrap();
 
