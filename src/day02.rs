@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 pub fn decimal_length(mut x: i64) -> u32 {
     if x == 0 {
         return 1;
@@ -49,6 +47,17 @@ fn first_n_digits(x: i64, x_len: u32, n: u32) -> i64 {
     y
 }
 
+fn sum_from_a_to_b(a: i64, b: i64) -> i64 {
+    if a > b {
+        return 0;
+    }
+    sum_to_n(b) - sum_to_n(a - 1)
+}
+
+fn sum_to_n(n: i64) -> i64 {
+    n * (n + 1) / 2
+}
+
 pub fn solve(input: &str) -> (i64, i64) {
     let ranges = parse_input(input);
 
@@ -61,38 +70,44 @@ pub fn solve(input: &str) -> (i64, i64) {
 
         // 2. consider divisors of 'num_digits'
         for (min, max, num_digits) in sections {
-            let mut invalid_p2 = HashSet::new();
+            // Inclusion exclusion fun
+            let divisors = match num_digits {
+                1 => vec![],
+                2 => vec![(1, 2)],
+                3 => vec![(1, 3)],
+                4 => vec![(1, 2)],
+                5 => vec![(1, 5)],
+                6 => vec![(1, 2), (1, 3), (-1, 6)],
+                7 => vec![(1, 7)],
+                8 => vec![(1, 2)],
+                9 => vec![(1, 3)],
+                10 => vec![(1, 2), (1, 5), (-1, 10)],
+                _ => panic!(),
+            };
 
-            for divisor in 2..=num_digits {
-                if num_digits % divisor != 0 {
-                    continue;
-                }
+            for (sign, divisor) in divisors {
                 let sz = num_digits / divisor;
 
                 // start = first 'sz' digits of 'min'
                 let start = first_n_digits(min, num_digits, sz);
                 let end = first_n_digits(max, num_digits, sz);
 
-                for i in start..=end {
-                    // let x = i repeated 'divisor' times
-                    let x = repeat_digits(i, sz, divisor);
-                    let in_range = x >= min && x <= max;
-                    // println!("i: {} in_range: {}", i, in_range);
-                    // if !in_range && (i != start && i != end) {
-                    //     panic!("this shouldn't happen: i: {} start: {} end: {}", i, start, end);
-                    // }
-                    if in_range {
-                        if divisor == 2 {
-                            part1 += x;
-                        }
-                        invalid_p2.insert(x);
-                    }
+                let mut sum = sum_from_a_to_b(start + 1, end - 1);
+                // Check inclusion of the start and end values separately
+                let start_val = repeat_digits(start, sz, divisor);
+                let end_val = repeat_digits(end, sz, divisor);
+                if min <= start_val && start_val <= max {
+                    sum += start;
                 }
+                if start != end && min <= end_val && end_val <= max {
+                    sum += end;
+                }
+                sum *= repeat_digits(1, sz, divisor);
 
-                // println!("sz: {}, start: {}, end: {}", sz, start, end);
-            }
-            for invalid in invalid_p2 {
-                part2 += invalid;
+                if divisor == 2 {
+                    part1 += sum;
+                }
+                part2 += sign * sum;
             }
         }
     }
