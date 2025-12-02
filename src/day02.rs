@@ -1,63 +1,103 @@
+use std::collections::HashSet;
 
+pub fn decimal_length(mut x: i64) -> u32 {
+    if x == 0 {
+        return 1;
+    }
+    let mut length = 0;
+    while x > 0 {
+        x /= 10;
+        length += 1;
+    }
+    length
+}
+
+fn min_value(num_digits: u32) -> i64 {
+    10_i64.pow(num_digits - 1)
+}
+
+fn max_value(num_digits: u32) -> i64 {
+    10_i64.pow(num_digits) - 1
+}
+
+fn partition_range(range: Range) -> Vec<(i64, i64, u32)> {
+    let num_digits_1 = decimal_length(range.start);
+    let num_digits_2 = decimal_length(range.end);
+
+    let mut sections = Vec::new();
+    for num_digits in num_digits_1..=num_digits_2 {
+        let min = std::cmp::max(range.start, min_value(num_digits));
+        let max = std::cmp::min(range.end, max_value(num_digits));
+        sections.push((min, max, num_digits));
+    }
+    sections
+}
+
+fn repeat_digits(x: i64, x_len: u32, n: u32) -> i64 {
+    let mut result = x;
+    for _ in 0..n - 1 {
+        result = result * 10_i64.pow(x_len) + x;
+    }
+    result
+}
+
+fn first_n_digits(x: i64, x_len: u32, n: u32) -> i64 {
+    let mut y = x;
+    for _ in 0..x_len - n {
+        y /= 10;
+    }
+    y
+}
 
 pub fn solve(input: &str) -> (i64, i64) {
     let ranges = parse_input(input);
 
     let mut part1 = 0;
     let mut part2 = 0;
-    for range in ranges {    
-        // Trivial solution: Check every value in the range for validity
-        for i in range.start..=range.end {
-            if is_invalid_part1(i) {
-                part1 += i;
+    for range in ranges {
+        // 1. Partition range into sections based on decimal length
+        let sections = partition_range(range);
+        // println!("sections: {:?}", sections);
+
+        // 2. consider divisors of 'num_digits'
+        for (min, max, num_digits) in sections {
+            let mut invalid_p2 = HashSet::new();
+
+            for divisor in 2..=num_digits {
+                if num_digits % divisor != 0 {
+                    continue;
+                }
+                let sz = num_digits / divisor;
+
+                // start = first 'sz' digits of 'min'
+                let start = first_n_digits(min, num_digits, sz);
+                let end = first_n_digits(max, num_digits, sz);
+
+                for i in start..=end {
+                    // let x = i repeated 'divisor' times
+                    let x = repeat_digits(i, sz, divisor);
+                    let in_range = x >= min && x <= max;
+                    // println!("i: {} in_range: {}", i, in_range);
+                    // if !in_range && (i != start && i != end) {
+                    //     panic!("this shouldn't happen: i: {} start: {} end: {}", i, start, end);
+                    // }
+                    if in_range {
+                        if divisor == 2 {
+                            part1 += x;
+                        }
+                        invalid_p2.insert(x);
+                    }
+                }
+
+                // println!("sz: {}, start: {}, end: {}", sz, start, end);
             }
-            if is_invalid_part2(i) {
-                part2 += i;
+            for invalid in invalid_p2 {
+                part2 += invalid;
             }
         }
     }
     (part1, part2)
 }
-
-fn is_invalid_part1(x: i64) -> bool {
-    let s: String = x.to_string();
-    
-    if s.len() % 2 != 0 {
-        return false;
-    }
-    let sz = s.len() / 2;
-
-    let x = s[0..sz].parse::<i64>().unwrap();
-    let y = s[sz..].parse::<i64>().unwrap();
-    x == y
-}
-
-
-fn is_invalid_part2(x: i64) -> bool {
-    let s: String = x.to_string();
-    
-    for n in 2..=s.len() {
-        if s.len() % n != 0 {
-            continue;
-        }
-        let sz = s.len() / n;
-
-        let x = s[0..sz].parse::<i64>().unwrap();
-        let mut invalid = true;
-        for m in 1..n {
-            let y = s[m*sz..(m+1)*sz].parse::<i64>().unwrap();
-            if x != y {
-                invalid = false;
-                break; 
-            }
-        }
-        if invalid {
-            return true;
-        }
-    }
-    false
-}
-
 
 #[derive(Debug)]
 struct Range {
