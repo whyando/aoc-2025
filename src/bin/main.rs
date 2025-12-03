@@ -12,6 +12,9 @@ fn main() {
     } else if aoc_day == "2" {
         let (p1, p2) = aoc_2025::day02::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+    } else if aoc_day == "3" {
+        let (p1, p2) = aoc_2025::day03::solve(&input);
+        println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else {
         println!("\"not implemented\"");
         std::process::exit(0);
