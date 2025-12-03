@@ -1,8 +1,7 @@
-
 pub fn solve(bytes: &[u8]) -> (i64, i64) {
     let mut part1 = 0;
     let mut part2 = 0;
-    
+
     // Process line by line
     let mut start = 0;
     while start < bytes.len() {
@@ -11,10 +10,10 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         while end < bytes.len() && bytes[end] != b'\n' {
             end += 1;
         }
-        
+
         if start < end {
             let line = &bytes[start..end];
-            
+
             // Part 1 - Find largest digit in the line (excluding the last digit)
             let mut largest_byte = b'0';
             let mut largest_index = 0;
@@ -53,10 +52,81 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             }
             part2 += sum;
         }
-        
-        start = end + 1;  // Move past newline
+
+        start = end + 1; // Move past newline
     }
-    
+
+    (part1, part2)
+}
+
+// linear time solution, but slower in practice
+pub fn solve_linear_time(bytes: &[u8]) -> (i64, i64) {
+    let mut part1 = 0;
+    let mut part2 = 0;
+
+    // Process line by line
+    let mut start = 0;
+    while start < bytes.len() {
+        // Find end of line (newline or end of input)
+        let mut end = start;
+        while end < bytes.len() && bytes[end] != b'\n' {
+            end += 1;
+        }
+
+        if start < end {
+            let line = &bytes[start..end];
+            let n = line.len();
+
+            // Part 1 - Find largest digit in the line (excluding the last digit)
+            let mut largest_byte = b'0';
+            let mut largest_index = 0;
+            for i in 0..n - 1 {
+                if line[i] > largest_byte {
+                    largest_byte = line[i];
+                    largest_index = i;
+                }
+            }
+            let mut largest2_byte = b'0';
+            for i in largest_index + 1..n {
+                if line[i] > largest2_byte {
+                    largest2_byte = line[i];
+                }
+            }
+            let largest = (largest_byte - b'0') as i64;
+            let largest2 = (largest2_byte - b'0') as i64;
+            part1 += 10 * largest + largest2;
+
+            // Part 2
+            let mut v = [b'0'; 12];
+            let mut v_sz: i32 = 0;
+            for i in 0..n {
+                let x = line[i];
+                // We need to insert x a some position k
+                // BUT, don't make k so small that we can't fill up the vector with 12 digits
+                // ie k + remaining_digits >= 11
+                // therefore k >= 11 - (N - i - 1)
+                let mut k2 = v_sz - 1; // k = k2 + 1
+                let min_k = std::cmp::max(0, 11 - (n - i - 1) as i32);
+                // while k2 >= min_k && x > v[k2 as usize] {
+                while k2 >= min_k && x > unsafe { *v.get_unchecked(k2 as usize) } {
+                    k2 -= 1;
+                }
+                if k2 < 11 {
+                    // Then x > v[k]
+                    v[(k2 + 1) as usize] = x;
+                    v_sz = k2 + 2;
+                }
+            }
+            let mut sum = 0;
+            for i in 0..12 {
+                sum = sum * 10 + (v[i] - b'0') as i64;
+            }
+            part2 += sum;
+        }
+
+        start = end + 1; // Move past newline
+    }
+
     (part1, part2)
 }
 
@@ -68,6 +138,7 @@ mod tests {
     fn test() {
         let input = std::fs::read("inputs/03.txt").unwrap();
         assert_eq!(solve(&input), (17087, 169019504359949));
+        assert_eq!(solve_linear_time(&input), (17087, 169019504359949));
     }
 
     #[test]
@@ -79,5 +150,6 @@ mod tests {
 ";
 
         assert_eq!(solve(test_input), (357, 3121910778619));
+        assert_eq!(solve_linear_time(test_input), (357, 3121910778619));
     }
 }
