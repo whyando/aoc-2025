@@ -1,4 +1,3 @@
-
 pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     let mut file = std::fs::File::open(path)?;
     let mut out = Vec::new();
