@@ -39,7 +39,7 @@ fn solve_inner<const N: i32>(bytes: &mut [u8]) -> (i64, i64) {
     let mut part2 = 0;
 
     // Part 1
-    let mut stack: Vec<(i32, i32)> = Vec::new();
+    let mut stack: Vec<(i32, i32)> = Vec::with_capacity((N * N) as usize);
     for x in 0..N {
         for y in 0..N {
             if at::<N>(bytes, x, y) != b'@' {
