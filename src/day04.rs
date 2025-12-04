@@ -52,7 +52,7 @@ fn solve_inner<const N: i32>(bytes: &[u8]) -> (i64, i64) {
     for y in 0..N {
         for x in 0..N {
             if *at::<N>(bytes, x, y) == b'@' {
-                for (dx, dy) in DIRECTIONS {                
+                for (dx, dy) in DIRECTIONS {
                     *adj_at_mut::<N>(&mut adj, x + dx, y + dy) += 1;
                 }
             } else {
@@ -60,7 +60,7 @@ fn solve_inner<const N: i32>(bytes: &[u8]) -> (i64, i64) {
             }
         }
     }
-    for i in 0..(N*N) as usize {
+    for i in 0..(N * N) as usize {
         if unsafe { *bytes.get_unchecked(i) } == b'@' {
             let x = (i % N as usize) as i32;
             let y = (i / N as usize) as i32;

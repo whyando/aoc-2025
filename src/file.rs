@@ -13,7 +13,7 @@ pub fn read_no_newlines(path: &str) -> Result<Vec<u8>, std::io::Error> {
             buf[..n]
                 .iter()
                 .copied()
-                .filter(|b| *b != b'\n' && *b != b'\r')
+                .filter(|b| *b != b'\n' && *b != b'\r'),
         );
     }
 

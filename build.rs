@@ -7,5 +7,3 @@ fn main() {
         .file("src/day01_asm.s")
         .compile("day01_asm");
 }
-
-

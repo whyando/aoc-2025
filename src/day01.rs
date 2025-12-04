@@ -1,9 +1,7 @@
 fn parse_i32_from_bytes(bytes: &[u8]) -> i32 {
     let mut n = 0i32;
     for &b in bytes {
-        if b'0' <= b && b <= b'9' {
-            n = n * 10 + (b - b'0') as i32;
-        }
+        n = n * 10 + (b - b'0') as i32;
     }
     n
 }
@@ -14,27 +12,20 @@ pub fn solve(input: &[u8]) -> (i32, i32) {
 
     let mut x = 100_050;
     for line in input.split(|&b| b == b'\n') {
-        if line.is_empty() {
-            continue;
-        }
         let steps = parse_i32_from_bytes(&line[1..]);
-        let dir = match line[0] {
-            b'L' => -1,
-            _ => 1,
+        match line[0] {
+            b'L' => {
+                part2 += (((x - 1) / 100) - ((x - steps - 1) / 100)).abs();
+                x = x - steps;
+            }
+            _ => {
+                part2 += (((x + steps) / 100) - (x / 100)).abs();
+                x = x + steps;
+            }
         };
-
-        let x1 = x + steps * dir;
-        let passes = if dir == -1 {
-            (((x - 1) / 100) - ((x1 - 1) / 100)).abs()
-        } else {
-            ((x1 / 100) - (x / 100)).abs()
-        };
-
-        if x1 % 100 == 0 {
+        if x % 100 == 0 {
             part1 += 1;
         }
-        part2 += passes;
-        x = x1;
     }
     (part1, part2)
 }
