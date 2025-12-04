@@ -21,7 +21,20 @@ fn zero<const N: i32>(bytes: &mut [u8], x: i32, y: i32) {
     }
 }
 
-pub fn solve<const N: i32>(bytes: &mut [u8]) -> (i64, i64) {
+pub fn solve(bytes: &mut [u8]) -> (i64, i64) {
+    match bytes.len() {
+        100 => solve_inner::<10>(bytes),
+        18225 => solve_inner::<135>(bytes),
+        18496 => solve_inner::<136>(bytes),
+        18769 => solve_inner::<137>(bytes),
+        19044 => solve_inner::<138>(bytes),
+        19321 => solve_inner::<139>(bytes),
+        19596 => solve_inner::<140>(bytes),
+        _ => panic!("Invalid input size"),
+    }
+}
+
+fn solve_inner<const N: i32>(bytes: &mut [u8]) -> (i64, i64) {
     let mut part1 = 0;
     let mut part2 = 0;
 
@@ -97,7 +110,7 @@ mod tests {
     #[test]
     fn test() {
         let mut input = crate::file::read_no_newlines("inputs/04.txt").unwrap();
-        assert_eq!(solve::<138>(&mut input), (1419, 8739));
+        assert_eq!(solve(&mut input), (1419, 8739));
     }
 
     #[test]
@@ -117,6 +130,6 @@ mod tests {
             .copied()
             .filter(|b| *b != b'\n' && *b != b'\r')
             .collect();
-        assert_eq!(solve::<10>(&mut test_input), (13, 43));
+        assert_eq!(solve(&mut test_input), (13, 43));
     }
 }
