@@ -17,12 +17,10 @@ pub fn solve(input: &[u8]) -> (i32, i32) {
         if line.is_empty() {
             continue;
         }
-        let direction = line[0] as char;
         let steps = parse_i32_from_bytes(&line[1..]);
-        let dir = match direction {
-            'L' => -1,
-            'R' => 1,
-            _ => panic!("Invalid direction: {}", direction),
+        let dir = match line[0] {
+            b'L' => -1,
+            _ => 1,
         };
 
         let x1 = x + steps * dir;
@@ -32,10 +30,10 @@ pub fn solve(input: &[u8]) -> (i32, i32) {
             ((x1 / 100) - (x / 100)).abs()
         };
 
-        if x % 100 == 0 {
+        if x1 % 100 == 0 {
             part1 += 1;
         }
-        part2 += passes as i32;
+        part2 += passes;
         x = x1;
     }
     (part1, part2)
