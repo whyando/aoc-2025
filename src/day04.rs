@@ -11,13 +11,13 @@ const DIRECTIONS: [(i32, i32); 8] = [
 
 #[inline(always)]
 fn at<const N: i32>(bytes: &[u8], x: i32, y: i32) -> u8 {
-    unsafe { *bytes.get_unchecked((y * (N + 1) + x) as usize) }
+    unsafe { *bytes.get_unchecked((y * N + x) as usize) }
 }
 
 #[inline(always)]
 fn zero<const N: i32>(bytes: &mut [u8], x: i32, y: i32) {
     unsafe {
-        *bytes.get_unchecked_mut((y * (N + 1) + x) as usize) = 0;
+        *bytes.get_unchecked_mut((y * N + x) as usize) = 0;
     }
 }
 
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut input = std::fs::read("inputs/04.txt").unwrap();
+        let mut input = crate::file::read_no_newlines("inputs/04.txt").unwrap();
         assert_eq!(solve::<138>(&mut input), (1419, 8739));
     }
 
@@ -112,7 +112,11 @@ mod tests {
 @.@@@.@@@@
 .@@@@@@@@.
 @.@.@@@.@.";
-
-        assert_eq!(solve::<10>(&mut test_input.to_vec()), (13, 43));
+        let mut test_input: Vec<u8> = test_input
+            .iter()
+            .copied()
+            .filter(|b| *b != b'\n' && *b != b'\r')
+            .collect();
+        assert_eq!(solve::<10>(&mut test_input), (13, 43));
     }
 }
