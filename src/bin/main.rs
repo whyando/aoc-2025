@@ -18,8 +18,8 @@ fn main() {
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else if aoc_day == "4" {
         // let mut input = std::fs::read(aoc_input).unwrap();
-        let mut input = aoc_2025::file::read_no_newlines(&aoc_input).unwrap();
-        let (p1, p2) = aoc_2025::day04::solve(&mut input);
+        let input = aoc_2025::file::read_no_newlines(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day04::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else {
         println!("\"not implemented\"");

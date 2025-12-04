@@ -14,7 +14,7 @@ fn at<const N: i32>(bytes: &[u8], x: i32, y: i32) -> &u8 {
     unsafe { bytes.get_unchecked((y * N + x) as usize) }
 }
 
-pub fn solve(bytes: &mut [u8]) -> (i64, i64) {
+pub fn solve(bytes: &[u8]) -> (i64, i64) {
     match bytes.len() {
         100 => solve_inner::<10>(bytes),
         18225 => solve_inner::<135>(bytes),
@@ -42,7 +42,7 @@ fn adj_at_mut<const N: i32>(adj: &mut [u8], x: i32, y: i32) -> &mut u8 {
     unsafe { adj.get_unchecked_mut(adj_index::<N>(x, y)) }
 }
 
-fn solve_inner<const N: i32>(bytes: &mut [u8]) -> (i64, i64) {
+fn solve_inner<const N: i32>(bytes: &[u8]) -> (i64, i64) {
     let mut part1 = 0;
     let mut part2 = 0;
 
@@ -89,8 +89,8 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut input = crate::file::read_no_newlines("inputs/04.txt").unwrap();
-        assert_eq!(solve(&mut input), (1419, 8739));
+        let input = crate::file::read_no_newlines("inputs/04.txt").unwrap();
+        assert_eq!(solve(&input), (1419, 8739));
     }
 
     #[test]
@@ -105,11 +105,11 @@ mod tests {
 @.@@@.@@@@
 .@@@@@@@@.
 @.@.@@@.@.";
-        let mut test_input: Vec<u8> = test_input
+        let test_input: Vec<u8> = test_input
             .iter()
             .copied()
             .filter(|b| *b != b'\n' && *b != b'\r')
             .collect();
-        assert_eq!(solve(&mut test_input), (13, 43));
+        assert_eq!(solve(&test_input), (13, 43));
     }
 }
