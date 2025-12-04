@@ -5,7 +5,7 @@ fn main() {
     // let aoc_input = "inputs/01.txt";
 
     if aoc_day == "1" {
-        let input = std::fs::read(aoc_input).unwrap();
+        let input = aoc_2025::file::read(&aoc_input).unwrap();
         let (p1, p2) = aoc_2025::day01::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else if aoc_day == "2" {
@@ -13,7 +13,7 @@ fn main() {
         let (p1, p2) = aoc_2025::day02::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else if aoc_day == "3" {
-        let input = std::fs::read(aoc_input).unwrap();
+        let input = aoc_2025::file::read(&aoc_input).unwrap();
         let (p1, p2) = aoc_2025::day03::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else if aoc_day == "4" {
