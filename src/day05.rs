@@ -1,4 +1,4 @@
-fn solve(bytes: &[u8]) -> (i64, i64) {
+pub fn solve(bytes: &[u8]) -> (i64, i64) {
     let mut part1 = 0;
     let mut part2 = 0;
 
