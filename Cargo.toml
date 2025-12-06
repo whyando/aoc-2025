@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 [dev-dependencies]
-# criterion = "0.8.0"
+criterion = "0.8.0"
 
 [build-dependencies]
 cc = "1"
@@ -14,6 +14,10 @@ cc = "1"
 [[bin]]
 name = "aoc-2025"
 path = "src/bin/main.rs"
+
+[[bench]]
+name = "bench"
+harness = false
 
 [profile.release]
 opt-level = 3          # max optimizations
