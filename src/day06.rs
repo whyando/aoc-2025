@@ -24,9 +24,6 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         .collect();
     let height = grid.len();
     let width = grid[0].len();
-    for y in 0..height {
-        assert_eq!(grid[y].len(), width);
-    }
 
     // Now for each column, compute the sum/product
     for x in 0..width {
@@ -53,15 +50,12 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
     }
 
     // Part 2
-    let mut lines = bytes
+    let lines = bytes
         .split(|&b| b == b'\n')
         .filter(|line| !line.is_empty())
         .collect::<Vec<&[u8]>>();
     let height = lines.len();
     let width = lines[0].len();
-    // for line in lines {
-    //     assert_eq!(line.len(), width);
-    // }
 
     // Easiest way to get the width of each column is using the final line
     // since the operator is always left aligned
@@ -71,15 +65,10 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         while lines[height - 1][op_idx] == b' ' {
             op_idx -= 1;
         }
-        let op = lines[height - 1][op_idx];
-        println!("op_idx: {}: {}: ", op_idx, String::from_utf8_lossy(&[op]));
+        let op_is_add = lines[height - 1][op_idx] == b'+';
 
         // Read lines[y][op_idx..last_op_idx]
-        let mut acc = match op {
-            b'+' => 0,
-            b'*' => 1,
-            _ => panic!("Invalid operator: {}", (op - b'0') as i64),
-        };
+        let mut acc = if op_is_add { 0 } else { 1 };
         for j in (op_idx..last_op_idx).rev() {
             let mut x = 0;
             for i in 0..height - 1 {
@@ -87,14 +76,12 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
                     x = x * 10 + (lines[i][j] - b'0') as i64;
                 }
             }
-            println!("x: {}", x);
-            acc = match op {
-                b'+' => acc + x,
-                b'*' => acc * x,
-                _ => panic!("Invalid operator: {}", (op - b'0') as i64),
+            acc = match op_is_add {
+                true => acc + x,
+                false => acc * x,
             };
         }
-        part2 += acc as i64;
+        part2 += acc;
 
         // move left to next column
         match op_idx {
