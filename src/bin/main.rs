@@ -25,8 +25,8 @@ fn main() {
         let (p1, p2) = aoc_2025::day05::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else if aoc_day == "6" {
-        let input = aoc_2025::file::read(&aoc_input).unwrap();
-        let (p1, p2) = aoc_2025::day06::solve(&input);
+        let input = aoc_2025::day06::read(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day06::solve::<4>(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else {
         println!("\"not implemented\"");

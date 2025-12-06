@@ -1,96 +1,111 @@
-fn parse_i64_from_bytes(bytes: &[u8]) -> i64 {
-    let mut n = 0i64;
-    for &b in bytes {
-        n = n * 10 + (b - b'0') as i64;
+const SPACE: u8 = 0;
+// const OP_NEWLINE: u8 = b'\n'; // 10
+const OP_ADD: u8 = 16;
+const OP_MUL: u8 = 32;
+
+#[inline(always)]
+fn byte_substitution(b: &u8) -> u8 {
+    match b {
+        b' ' => SPACE,
+        b'1'..=b'9' => b - b'0',
+        b'+' => OP_ADD,
+        b'*' => OP_MUL,
+        _ => *b,
     }
-    n
 }
 
-pub fn solve(bytes: &[u8]) -> (i64, i64) {
+pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
+    let mut file = std::fs::File::open(path)?;
+    let mut out = Vec::new();
+    let mut buf = [0u8; 8192];
+
+    loop {
+        let n = std::io::Read::read(&mut file, &mut buf)?;
+        if n == 0 {
+            break;
+        }
+
+        out.extend(buf[..n].iter().map(byte_substitution));
+    }
+
+    // Remove trailing newline
+    if out.last() == Some(&b'\n') {
+        out.pop();
+    }
+    Ok(out)
+}
+
+pub fn solve<const HEIGHT: usize>(bytes: &[u8]) -> (i64, i64) {
     let mut part1 = 0;
     let mut part2 = 0;
 
-    // Part 1
-    // Read into Vec<Vec<&[u8]>> splitting on newlines and then splitting on spaces
-    // (discard all extra whitespace)
-    let grid: Vec<Vec<&[u8]>> = bytes
-        .split(|&b| b == b'\n')
-        .filter(|line| !line.is_empty())
-        .map(|line| {
-            line.split(|&b| b == b' ')
-                .filter(|s| !s.is_empty())
-                .collect()
-        })
-        .collect();
-    let height = grid.len();
-    let width = grid[0].len();
-
-    // Now for each column, compute the sum/product
-    for x in 0..width {
-        let operator = grid[height - 1][x][0];
-        match operator {
-            b'+' => {
-                let mut acc = 0;
-                for y in 0..height - 1 {
-                    acc += parse_i64_from_bytes(grid[y][x]);
-                }
-                part1 += acc as i64;
-            }
-            b'*' => {
-                let mut acc = 1;
-                for y in 0..height - 1 {
-                    acc *= parse_i64_from_bytes(grid[y][x]);
-                }
-                part1 += acc as i64;
-            }
-            _ => {
-                panic!("Invalid operator: {}", (operator - b'0') as i64);
-            }
-        }
-    }
-
-    // Part 2
-    let lines = bytes
-        .split(|&b| b == b'\n')
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<&[u8]>>();
-    let height = lines.len();
+    let lines = bytes.split(|&b| b == b'\n').collect::<Vec<&[u8]>>();
     let width = lines[0].len();
 
     // Easiest way to get the width of each column is using the final line
     // since the operator is always left aligned
-    let mut op_idx = lines[height - 1].len() - 1;
+    let mut op_idx = lines[HEIGHT].len() - 1;
     let mut last_op_idx = width;
     loop {
-        while lines[height - 1][op_idx] == b' ' {
+        while lines[HEIGHT][op_idx] == SPACE {
             op_idx -= 1;
         }
-        let op_is_add = lines[height - 1][op_idx] == b'+';
-
-        // Read lines[y][op_idx..last_op_idx]
-        let mut acc = if op_is_add { 0 } else { 1 };
-        for j in (op_idx..last_op_idx).rev() {
-            let mut x = 0;
-            for i in 0..height - 1 {
-                if lines[i][j] != b' ' {
-                    x = x * 10 + (lines[i][j] - b'0') as i64;
+        let op_is_add = lines[HEIGHT][op_idx] == OP_ADD;
+        if op_is_add {
+            // Part 1
+            for i in (0..HEIGHT).rev() {
+                let mut x = 0;
+                for j in op_idx..last_op_idx {
+                    if lines[i][j] != SPACE {
+                        x = x * 10 + lines[i][j] as i64;
+                    }
                 }
+                part1 += x
             }
-            acc = match op_is_add {
-                true => acc + x,
-                false => acc * x,
-            };
+            // Part 2
+            for j in op_idx..last_op_idx {
+                let mut x = 0;
+                for i in 0..HEIGHT {
+                    if lines[i][j] != SPACE {
+                        x = x * 10 + lines[i][j] as i64;
+                    }
+                }
+                part2 += x;
+            }
+        } else {
+            let mut acc1 = 1;
+            let mut acc2 = 1;
+            // Part 1
+            for i in (0..HEIGHT).rev() {
+                let mut x = 0;
+                for j in op_idx..last_op_idx {
+                    if lines[i][j] != SPACE {
+                        x = x * 10 + lines[i][j] as i64;
+                    }
+                }
+                acc1 *= x
+            }
+
+            // Part 2
+            for j in op_idx..last_op_idx {
+                let mut x = 0;
+                for i in 0..HEIGHT {
+                    if lines[i][j] != SPACE {
+                        x = x * 10 + lines[i][j] as i64;
+                    }
+                }
+                acc2 *= x;
+            }
+            part1 += acc1;
+            part2 += acc2;
         }
-        part2 += acc;
 
         // move left to next column
-        match op_idx {
-            0 => break,
-            _ => {
-                op_idx -= 1;
-                last_op_idx = op_idx;
-            }
+        if op_idx == 0 {
+            break;
         }
+        op_idx -= 1;
+        last_op_idx = op_idx;
     }
     (part1, part2)
 }
@@ -101,8 +116,8 @@ mod tests {
 
     #[test]
     fn test() {
-        let input = crate::file::read("inputs/06.txt").unwrap();
-        assert_eq!(solve(&input), (3785892992137, 7669802156452));
+        let input = read("inputs/06.txt").unwrap();
+        assert_eq!(solve::<4>(&input), (3785892992137, 7669802156452));
     }
 
     #[test]
@@ -111,6 +126,10 @@ mod tests {
  45 64  387 23 
   6 98  215 314
 *   +   *   +  ";
-        assert_eq!(solve(&test_input.to_vec()), (4277556, 3263827));
+        let test_input = test_input
+            .iter()
+            .map(byte_substitution)
+            .collect::<Vec<u8>>();
+        assert_eq!(solve::<3>(&test_input.to_vec()), (4277556, 3263827));
     }
 }
