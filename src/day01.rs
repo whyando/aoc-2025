@@ -34,27 +34,6 @@ pub fn solve(input: &[u8]) -> (i32, i32) {
 mod tests {
     use super::*;
 
-    unsafe extern "C" {
-        // From `day01_asm.s`:
-        // void day01_solve_asm(const unsigned char *ptr, unsigned long len,
-        //                       int *out_part1, int *out_part2);
-        fn day01_solve_asm(ptr: *const u8, len: usize, out_part1: *mut i32, out_part2: *mut i32);
-    }
-
-    fn solve_asm_wrapper(input: &str) -> (i32, i32) {
-        let mut part1 = 0i32;
-        let mut part2 = 0i32;
-        unsafe {
-            day01_solve_asm(
-                input.as_ptr(),
-                input.len(),
-                &mut part1 as *mut i32,
-                &mut part2 as *mut i32,
-            );
-        }
-        (part1, part2)
-    }
-
     #[test]
     fn test() {
         let input = std::fs::read("inputs/01.txt").unwrap();
@@ -75,30 +54,5 @@ R14
 L82";
 
         assert_eq!(solve(test_input.as_bytes()), (3, 6));
-    }
-
-    #[test]
-    fn test_asm() {
-        let test_input = "L68
-L30
-R48
-L5
-R60
-L55
-L1
-L99
-R14
-L82";
-        let rust_result = solve(test_input.as_bytes());
-        let asm_result = solve_asm_wrapper(&test_input);
-        println!("Rust: {:?}, ASM: {:?}", rust_result, asm_result);
-        assert_eq!(asm_result, rust_result);
-
-        let input = std::fs::read("inputs/01.txt").unwrap();
-        let rust_result = solve(&input);
-        let input_str = String::from_utf8_lossy(&input);
-        let asm_result = solve_asm_wrapper(&input_str);
-        println!("Rust: {:?}, ASM: {:?}", rust_result, asm_result);
-        assert_eq!(asm_result, rust_result);
     }
 }
