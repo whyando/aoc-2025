@@ -59,7 +59,7 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
 
     // Easiest way to get the width of each column is using the final line
     // since the operator is always left aligned
-    let mut op_idx = width - 1;
+    let mut op_idx = lines[height - 1].len() - 1;
     let mut last_op_idx = width;
     loop {
         while lines[height - 1][op_idx] == b' ' {
