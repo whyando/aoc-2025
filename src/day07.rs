@@ -9,7 +9,7 @@ fn at<const WIDTH: usize>(bytes: &[u8], y: usize, x: usize) -> &u8 {
 }
 
 pub fn solve<const WIDTH: usize>(bytes: &[u8]) -> (u64, u64) {
-    let s_idx = (WIDTH - 1) / 2;
+    let s_idx = WIDTH / 2;
     let mut x = [0u64; WIDTH];
 
     x[s_idx] = 1;
