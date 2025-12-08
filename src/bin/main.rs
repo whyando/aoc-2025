@@ -30,6 +30,10 @@ fn main() {
         let input = aoc_2025::day07::read(&aoc_input).unwrap();
         let (p1, p2) = aoc_2025::day07::solve::<141>(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+    } else if aoc_day == "8" {
+        let input = aoc_2025::day08::read(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day08::solve(&input, 1000);
+        println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     } else {
         println!("\"not implemented\"");
         std::process::exit(0);
