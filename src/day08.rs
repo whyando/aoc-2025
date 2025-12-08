@@ -17,6 +17,7 @@ pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
 
     let points = bytes
         .split(|&b| b == b'\n')
+        .filter(|line| !line.is_empty())
         .map(|line| {
             let parts = line
                 .split(|&b| b == b',')
