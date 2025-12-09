@@ -138,25 +138,25 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         let south = edge_north[x][y + 1];
         let east = edge_west[x + 1][y];
         if !north {
-            if grid[x][y - 1] {
+            if !grid[x][y - 1] {
                 grid[x][y - 1] = true;
                 stack.push((x, y - 1));
             }
         }
         if !west {
-            if grid[x - 1][y] {
+            if !grid[x - 1][y] {
                 grid[x - 1][y] = true;
                 stack.push((x - 1, y));
             }
         }
         if !south {
-            if grid[x][y + 1] {
+            if !grid[x][y + 1] {
                 grid[x][y + 1] = true;
                 stack.push((x, y + 1));
             }
         }
         if !east {
-            if grid[x + 1][y] {
+            if !grid[x + 1][y] {
                 grid[x + 1][y] = true;
                 stack.push((x + 1, y));
             }
