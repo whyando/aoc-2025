@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
@@ -107,25 +107,6 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         }
     }
 
-    // // Debug print grid
-    // for y in 0..y_coord.len() {
-    //     for x in 0..x_coord.len() {
-    //         // Check all 4 directions
-    //         let north = edge_north[x][y] == 1;
-    //         let west = edge_west[x][y] == 1;
-    //         let south = edge_north[x][y + 1] == 1;
-    //         let east = edge_west[x + 1][y] == 1;
-    //         let mut label = String::new();
-    //         if north { label.push('N'); }
-    //         if west { label.push('W'); }
-    //         if south { label.push('S'); }
-    //         if east { label.push('E'); }
-    //         print!("{:4} ", label);
-    //     }
-    //     println!();
-    // }
-    // println!();
-
     // Flood fill enclosed area
     // Look at first edge - assume that the points are clockwise
     let x1_idx = x_idx_lookup.get(&points[0].x).unwrap();
@@ -134,26 +115,26 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
     let y2_idx = y_idx_lookup.get(&points[1].y).unwrap();
 
     let (sx, sy) = if *x1_idx == *x2_idx {
-        if *y2_idx < *y1_idx {
+        if *y2_idx > *y1_idx {
             // Edge is heading southwards
-            // This is a west edge, relative to the first point
-            (*x2_idx, *y2_idx)
-        } else if *y2_idx > *y1_idx {
-            // Edge is heading northwards
             // This is an east edge, relative to the first point
             (*x1_idx - 1, *y1_idx)
+        } else if *y2_idx < *y1_idx {
+            // Edge is heading northwards
+            // This is a west edge, relative to the first point
+            (*x1_idx, *y1_idx - 1)
         } else {
             panic!("Invalid edge direction");
         }
     } else {
         if *x2_idx < *x1_idx {
             // Edge is heading westwards
-            // This is a north edge, relative to the first point
-            (*x2_idx, *y2_idx)
+            // This is a south edge, relative to the first point
+            (*x1_idx - 1, *y1_idx - 1)
         } else if *x2_idx > *x1_idx {
             // Edge is heading eastwards
-            // This is a south edge, relative to the first point
-            (*x2_idx - 1, *y2_idx)
+            // This is a north edge, relative to the first point
+            (*x1_idx, *y1_idx)
         } else {
             panic!("Invalid edge direction");
         }
@@ -194,24 +175,6 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             }
         }
     }
-
-    // Debug print grid
-    let mut area = 0;
-    for y in 0..y_coord.len() {
-        for x in 0..x_coord.len() {
-            let c = match grid[x][y] {
-                0 => '.',
-                1 => 'X',
-                _ => panic!("Invalid grid value"),
-            };
-            print!("{} ", c);
-            if grid[x][y] == 1 {
-                area += 1;
-            }
-        }
-        println!();
-    }
-    println!("Area: {}", area);
 
     // Finally, check pairs of points
     // check every point inside
