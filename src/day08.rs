@@ -12,9 +12,68 @@ fn parse_i64(bytes: &[u8]) -> i64 {
     num
 }
 
-pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
-    let mut part1 = 0;
+pub fn solve_mst_prims(points: &[(i64, i64, i64)]) -> (usize, usize) {
+    let n = points.len();
 
+    let mut key = vec![u64::MAX; n];
+    let mut parent = vec![usize::MAX; n];
+    let mut in_mst = vec![false; n];
+
+    key[0] = 0;
+    parent[0] = 0;
+
+    for _ in 0..n {
+        // Pick the next vertex with minimum key
+        let mut u = 0;
+        let mut min_key = u64::MAX;
+        for i in 0..n {
+            if !in_mst[i] && key[i] < min_key {
+                min_key = key[i];
+                u = i;
+            }
+        }
+
+        in_mst[u] = true;
+
+        // Update neighbors by computing distance on-the-fly
+        for v in 0..n {
+            if !in_mst[v] {
+                let dist = {
+                    let dx = points[u].0 - points[v].0;
+                    let dy = points[u].1 - points[v].1;
+                    let dz = points[u].2 - points[v].2;
+                    (dx * dx + dy * dy + dz * dz) as u64
+                };
+
+                if dist < key[v] {
+                    key[v] = dist;
+                    parent[v] = u;
+                }
+            }
+        }
+    }
+
+    // Find largest edge in MST
+    let mut max_edge = 0u64;
+    let mut pair = (0, 0);
+
+    for v in 1..n {
+        let u = parent[v];
+        let dx = points[u].0 - points[v].0;
+        let dy = points[u].1 - points[v].1;
+        let dz = points[u].2 - points[v].2;
+        let dist = (dx * dx + dy * dy + dz * dz) as u64;
+
+        if dist > max_edge {
+            max_edge = dist;
+            pair = (u, v);
+        }
+    }
+
+    pair
+}
+
+pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
     let points = bytes
         .split(|&b| b == b'\n')
         .filter(|line| !line.is_empty())
@@ -27,8 +86,10 @@ pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
         })
         .collect::<Vec<(i64, i64, i64)>>();
 
+    let (mst_part1, mst_part2) = solve_mst_prims(&points);
+    let part2_mst = points[mst_part1].0 * points[mst_part2].0;
+
     // Label all the points + use linked lists to track the size of each connected component
-    let mut merges = 0;
     let mut label = vec![0; points.len()];
     let mut label_ll = vec![LinkedList::new(); points.len()];
     for p_idx in 0..points.len() {
@@ -46,15 +107,12 @@ pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
             edges.push((p_idx + 0x10000 * q_idx, dist));
         }
     }
-    edges.sort_unstable_by_key(|e| e.1);
+    // We only need to sort the smallest num_connections edges
+    edges.select_nth_unstable_by_key(num_connections, |e| e.1);
+    edges.truncate(num_connections);
+    edges.sort_unstable_by(|a, b| a.1.cmp(&b.1));
 
-    for (edge_idx, edge) in edges.iter().enumerate() {
-        // Part 1: Find the 3 largest connected components
-        if edge_idx == num_connections {
-            let mut component_sizes = label_ll.iter().map(|ll| ll.len()).collect::<Vec<usize>>();
-            component_sizes.sort_unstable_by_key(|&size| std::cmp::Reverse(size));
-            part1 = component_sizes[0] * component_sizes[1] * component_sizes[2];
-        }
+    for edge in edges {
         let p_idx = edge.0 & 0xFFFF;
         let q_idx = edge.0 >> 16;
 
@@ -75,16 +133,13 @@ pub fn solve(bytes: &[u8], num_connections: usize) -> (i64, i64) {
                 let mut p_list = std::mem::take(&mut label_ll[p_label]);
                 label_ll[q_label].append(&mut p_list);
             }
-            merges += 1;
-
-            if merges == points.len() - 1 {
-                let part2 = points[p_idx].0 * points[q_idx].0;
-                return (part1 as i64, part2);
-            }
         }
     }
+    let mut component_sizes = label_ll.iter().map(|ll| ll.len()).collect::<Vec<usize>>();
+    component_sizes.sort_unstable_by_key(|&size| std::cmp::Reverse(size));
+    let part1 = component_sizes[0] * component_sizes[1] * component_sizes[2];
 
-    unreachable!()
+    (part1 as i64, part2_mst)
 }
 
 #[cfg(test)]
