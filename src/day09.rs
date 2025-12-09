@@ -73,8 +73,8 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         y_idx_lookup.insert(*y, i);
     }
 
-    let mut edge_north = vec![vec![0; y_coord.len() + 1]; x_coord.len() + 1];
-    let mut edge_west = vec![vec![0; y_coord.len() + 1]; x_coord.len() + 1];
+    let mut edge_north = vec![vec![false; y_coord.len() + 1]; x_coord.len() + 1];
+    let mut edge_west = vec![vec![false; y_coord.len() + 1]; x_coord.len() + 1];
     // Iterate adjacent pairs
     for i in 0..points.len() {
         let j = (i + 1) % points.len();
@@ -93,14 +93,14 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             let y1_idx = y_idx_lookup.get(&y1).unwrap();
             let y2_idx = y_idx_lookup.get(&y2).unwrap();
             for y_idx in *y1_idx..*y2_idx {
-                edge_west[*x_idx][y_idx] = 1;
+                edge_west[*x_idx][y_idx] = true;
             }
         } else if y1 == y2 {
             let y_idx = y_idx_lookup.get(&y1).unwrap();
             let x1_idx = x_idx_lookup.get(&x1).unwrap();
             let x2_idx = x_idx_lookup.get(&x2).unwrap();
             for x_idx in *x1_idx..*x2_idx {
-                edge_north[x_idx][*y_idx] = 1;
+                edge_north[x_idx][*y_idx] = true;
             }
         } else {
             panic!("Invalid pair: {:?}", (x1, x2, y1, y2));
@@ -140,37 +140,37 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         }
     };
     let mut stack: Vec<(usize, usize)> = Vec::new();
-    let mut grid = vec![vec![0; y_coord.len()]; x_coord.len()];
+    let mut grid = vec![vec![false; y_coord.len()]; x_coord.len()];
     stack.push((sx, sy));
-    grid[sx][sy] = 1;
+    grid[sx][sy] = true;
 
     while let Some((x, y)) = stack.pop() {
         // Check if edges are present in the 4 directions
-        let north = edge_north[x][y] == 1;
-        let west = edge_west[x][y] == 1;
-        let south = edge_north[x][y + 1] == 1;
-        let east = edge_west[x + 1][y] == 1;
+        let north = edge_north[x][y];
+        let west = edge_west[x][y];
+        let south = edge_north[x][y + 1];
+        let east = edge_west[x + 1][y];
         if !north {
-            if grid[x][y - 1] == 0 {
-                grid[x][y - 1] = 1;
+            if grid[x][y - 1] {
+                grid[x][y - 1] = true;
                 stack.push((x, y - 1));
             }
         }
         if !west {
-            if grid[x - 1][y] == 0 {
-                grid[x - 1][y] = 1;
+            if grid[x - 1][y] {
+                grid[x - 1][y] = true;
                 stack.push((x - 1, y));
             }
         }
         if !south {
-            if grid[x][y + 1] == 0 {
-                grid[x][y + 1] = 1;
+            if grid[x][y + 1] {
+                grid[x][y + 1] = true;
                 stack.push((x, y + 1));
             }
         }
         if !east {
-            if grid[x + 1][y] == 0 {
-                grid[x + 1][y] = 1;
+            if grid[x + 1][y] {
+                grid[x + 1][y] = true;
                 stack.push((x + 1, y));
             }
         }
@@ -204,7 +204,7 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             let mut enclosed = true;
             'outer: for x_idx in *x1_idx..*x2_idx {
                 for y_idx in *y1_idx..*y2_idx {
-                    if grid[x_idx][y_idx] == 0 {
+                    if !grid[x_idx][y_idx] {
                         enclosed = false;
                         break 'outer;
                     }
