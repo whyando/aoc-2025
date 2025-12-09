@@ -36,19 +36,6 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
     // Parse
     let points = parse_points(bytes);
 
-    // Part 1
-    let mut part1_max_area = 0;
-    for i in 0..points.len() {
-        for j in i + 1..points.len() {
-            let p = &points[i];
-            let q = &points[j];
-            let area = ((p.x - q.x).abs() + 1) * ((p.y - q.y).abs() + 1);
-            if area > part1_max_area {
-                part1_max_area = area;
-            }
-        }
-    }
-
     // Part 2
     // Flood fill against grid of unique x-coords and y-coords
     let mut x_coord: Vec<i64> = Vec::new();
@@ -178,12 +165,16 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
 
     // Finally, check pairs of points
     // check every point inside
+    let mut part1_max_area = 0;
     let mut part2_max_area = 0;
     for i in 0..points.len() {
         for j in i + 1..points.len() {
             let p = &points[i];
             let q = &points[j];
             let area = ((p.x - q.x).abs() + 1) * ((p.y - q.y).abs() + 1);
+            if area > part1_max_area {
+                part1_max_area = area;
+            }
             if area <= part2_max_area {
                 continue;
             }
