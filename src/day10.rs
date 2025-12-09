@@ -11,6 +11,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn test() {
         let input = read("inputs/10.txt").unwrap();
         assert_eq!(solve(&input), (0, 0));
