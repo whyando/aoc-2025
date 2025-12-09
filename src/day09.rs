@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::cmp::{min, max};
 
 pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
@@ -32,181 +32,164 @@ fn parse_points(bytes: &[u8]) -> Vec<Point> {
     points
 }
 
+fn vertical_edge_inside(
+    hor_segments: &[(i64, i64, i64)],
+    vertical_edge: (i64, i64, i64),
+) -> bool {
+    let (x, y1, y2) = vertical_edge;
+    let y_min = min(y1, y2);
+    let y_max = max(y1, y2);
+    
+    for &hor_segment in hor_segments {
+        let (y, x1, x2) = hor_segment;
+        // Check if the vertical edge crosses this horizontal segment
+        // The edge crosses if: y is between y_min and y_max, and x is between x1 and x2
+        if y_min < y && y < y_max {
+            let x_min = min(x1, x2);
+            let x_max = max(x1, x2);
+            if x_min < x && x < x_max {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn horizontal_edge_inside(
+    ver_segments: &[(i64, i64, i64)],
+    horizontal_edge: (i64, i64, i64),
+) -> bool {
+    let (y, x1, x2) = horizontal_edge;
+    let x_min = min(x1, x2);
+    let x_max = max(x1, x2);
+    
+    for &ver_segment in ver_segments {
+        let (x, y1, y2) = ver_segment;
+        // Check if the horizontal edge crosses this vertical segment
+        // The edge crosses if: x is between x_min and x_max, and y is between y1 and y2
+        if x_min < x && x < x_max {
+            let y_min = min(y1, y2);
+            let y_max = max(y1, y2);
+            if y_min < y && y < y_max {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+const NORTH: usize = 0;
+const EAST: usize = 1;
+const SOUTH: usize = 2;
+const WEST: usize = 3;
+
+const QUADRANT_NW: usize = 0;
+const QUADRANT_NE: usize = 1;
+const QUADRANT_SW: usize = 2;
+const QUADRANT_SE: usize = 3;
+
 pub fn solve(bytes: &[u8]) -> (i64, i64) {
     // Parse
     let points = parse_points(bytes);
 
-    // Part 2
-    // Flood fill against grid of unique x-coords and y-coords
-    let mut x_coord: Vec<i64> = Vec::new();
-    let mut y_coord: Vec<i64> = Vec::new();
-    for p in &points {
-        x_coord.push(p.x);
-        y_coord.push(p.y);
-    }
-    // Sort and drop duplicates
-    x_coord.sort_unstable();
-    y_coord.sort_unstable();
-    x_coord.dedup();
-    y_coord.dedup();
+    let mut ver_segments = vec![];
+    let mut hor_segments = vec![];
 
-    // Create an index lookup
-    let mut x_idx_lookup: BTreeMap<i64, usize> = BTreeMap::new();
-    let mut y_idx_lookup: BTreeMap<i64, usize> = BTreeMap::new();
-    for (i, x) in x_coord.iter().enumerate() {
-        x_idx_lookup.insert(*x, i);
-    }
-    for (i, y) in y_coord.iter().enumerate() {
-        y_idx_lookup.insert(*y, i);
-    }
-
-    let mut edge_north = vec![vec![false; y_coord.len() + 1]; x_coord.len() + 1];
-    let mut edge_west = vec![vec![false; y_coord.len() + 1]; x_coord.len() + 1];
-    // Iterate adjacent pairs
-    for i in 0..points.len() {
+    let mut last_edge_direction = 5;
+    // pqi = point quadrant inside
+    let mut pqi = vec![vec![false; 4]; points.len()]; // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right
+    for i in 0..=points.len() {
+        let i = i % points.len();
         let j = (i + 1) % points.len();
-        let mut x1 = points[i].x;
-        let mut x2 = points[j].x;
-        let mut y1 = points[i].y;
-        let mut y2 = points[j].y;
-        if x2 < x1 {
-            std::mem::swap(&mut x1, &mut x2);
-        }
-        if y2 < y1 {
-            std::mem::swap(&mut y1, &mut y2);
-        }
-        if x1 == x2 {
-            let x_idx = x_idx_lookup.get(&x1).unwrap();
-            let y1_idx = y_idx_lookup.get(&y1).unwrap();
-            let y2_idx = y_idx_lookup.get(&y2).unwrap();
-            for y_idx in *y1_idx..*y2_idx {
-                edge_west[*x_idx][y_idx] = true;
-            }
-        } else if y1 == y2 {
-            let y_idx = y_idx_lookup.get(&y1).unwrap();
-            let x1_idx = x_idx_lookup.get(&x1).unwrap();
-            let x2_idx = x_idx_lookup.get(&x2).unwrap();
-            for x_idx in *x1_idx..*x2_idx {
-                edge_north[x_idx][*y_idx] = true;
+        let p1 = &points[i];
+        let p2 = &points[j];
+
+        // Determine edge direction: 0 north, 1 east, 2 south, 3 west
+        let edge_direction = if p1.x == p2.x {
+            if p1.y < p2.y {
+                2
+            } else {
+                0
             }
         } else {
-            panic!("Invalid pair: {:?}", (x1, x2, y1, y2));
+            if p1.x < p2.x {
+                1
+            } else {
+                3
+            }
+        };
+
+        // Handle i==0 case last, since last_edge_direction is undefined
+        if i != 0 {
+            // s = first 'inside' quadrant
+            let mut s = match last_edge_direction {
+                NORTH => QUADRANT_SE,
+                EAST => QUADRANT_SW,
+                SOUTH => QUADRANT_NW,
+                WEST => QUADRANT_NE,
+                _ => panic!(),
+            };
+            // t = final 'inside' quadrant
+            let t = match edge_direction {
+                NORTH => QUADRANT_NE,
+                EAST => QUADRANT_SE,
+                SOUTH => QUADRANT_SW,
+                WEST => QUADRANT_NW,
+                _ => panic!(),
+            };
+            while s != t {
+                pqi[i][s] = true;
+                s = (s + 1) % 4;
+            }
+            pqi[i][t] = true;            
+
+            if p1.x == p2.x {
+                ver_segments.push((p1.x, p1.y, p2.y));
+            } else if p1.y == p2.y {
+                hor_segments.push((p1.y, p1.x, p2.x));
+            } else {
+                panic!();
+            }
         }
+        last_edge_direction = edge_direction;
     }
 
-    // Flood fill enclosed area
-    // Look at first edge - assume that the points are clockwise
-    let x1_idx = x_idx_lookup.get(&points[0].x).unwrap();
-    let y1_idx = y_idx_lookup.get(&points[0].y).unwrap();
-    let x2_idx = x_idx_lookup.get(&points[1].x).unwrap();
-    let y2_idx = y_idx_lookup.get(&points[1].y).unwrap();
+    ver_segments.sort_unstable_by_key(|s| s.0);
+    hor_segments.sort_unstable_by_key(|s| s.0);
 
-    let (sx, sy) = if *x1_idx == *x2_idx {
-        if *y2_idx > *y1_idx {
-            // Edge is heading southwards
-            // This is an east edge, relative to the first point
-            (*x1_idx - 1, *y1_idx)
-        } else if *y2_idx < *y1_idx {
-            // Edge is heading northwards
-            // This is a west edge, relative to the first point
-            (*x1_idx, *y1_idx - 1)
-        } else {
-            panic!("Invalid edge direction");
-        }
-    } else {
-        if *x2_idx < *x1_idx {
-            // Edge is heading westwards
-            // This is a south edge, relative to the first point
-            (*x1_idx - 1, *y1_idx - 1)
-        } else if *x2_idx > *x1_idx {
-            // Edge is heading eastwards
-            // This is a north edge, relative to the first point
-            (*x1_idx, *y1_idx)
-        } else {
-            panic!("Invalid edge direction");
-        }
-    };
-    let mut stack: Vec<(usize, usize)> = Vec::new();
-    let mut grid = vec![vec![false; y_coord.len()]; x_coord.len()];
-    stack.push((sx, sy));
-    grid[sx][sy] = true;
+    let mut part1 = 0;
+    let mut part2 = 0;
 
-    while let Some((x, y)) = stack.pop() {
-        // Check if edges are present in the 4 directions
-        let north = edge_north[x][y];
-        let west = edge_west[x][y];
-        let south = edge_north[x][y + 1];
-        let east = edge_west[x + 1][y];
-        if !north {
-            if !grid[x][y - 1] {
-                grid[x][y - 1] = true;
-                stack.push((x, y - 1));
-            }
-        }
-        if !west {
-            if !grid[x - 1][y] {
-                grid[x - 1][y] = true;
-                stack.push((x - 1, y));
-            }
-        }
-        if !south {
-            if !grid[x][y + 1] {
-                grid[x][y + 1] = true;
-                stack.push((x, y + 1));
-            }
-        }
-        if !east {
-            if !grid[x + 1][y] {
-                grid[x + 1][y] = true;
-                stack.push((x + 1, y));
-            }
-        }
-    }
-
-    // Finally, check pairs of points
-    // check every point inside
-    let mut part1_max_area = 0;
-    let mut part2_max_area = 0;
     for i in 0..points.len() {
         for j in i + 1..points.len() {
-            let p = &points[i];
-            let q = &points[j];
-            let area = ((p.x - q.x).abs() + 1) * ((p.y - q.y).abs() + 1);
-            if area > part1_max_area {
-                part1_max_area = area;
+            let x1 = points[i].x;
+            let y1 = points[i].y;
+            let x2 = points[j].x;
+            let y2 = points[j].y;
+
+            let vert_edge1 = (x1, y1, y2);
+            let vert_edge2 = (x2, y1, y2);
+            let hor_edge1 = (y1, x1, x2);
+            let hor_edge2 = (y2, x1, x2);
+
+            // Check for intersections (linear at first)
+            let area = ((x2 - x1).abs() + 1) * ((y2 - y1).abs() + 1);
+            part1 = std::cmp::max(part1, area);
+            let intersects = vertical_edge_inside(&hor_segments, vert_edge1)
+                && vertical_edge_inside(&hor_segments, vert_edge2)
+                && horizontal_edge_inside(&ver_segments, hor_edge1)
+                && horizontal_edge_inside(&ver_segments, hor_edge2);
+            if !intersects {
+                part2 = std::cmp::max(part2, area);
             }
-            if area <= part2_max_area {
-                continue;
-            }
-            let mut x1 = p.x;
-            let mut x2 = q.x;
-            let mut y1 = p.y;
-            let mut y2 = q.y;
-            if x2 < x1 {
-                std::mem::swap(&mut x1, &mut x2);
-            }
-            if y2 < y1 {
-                std::mem::swap(&mut y1, &mut y2);
-            }
-            let x1_idx = x_idx_lookup.get(&x1).unwrap();
-            let x2_idx = x_idx_lookup.get(&x2).unwrap();
-            let y1_idx = y_idx_lookup.get(&y1).unwrap();
-            let y2_idx = y_idx_lookup.get(&y2).unwrap();
-            let mut enclosed = true;
-            'outer: for x_idx in *x1_idx..*x2_idx {
-                for y_idx in *y1_idx..*y2_idx {
-                    if !grid[x_idx][y_idx] {
-                        enclosed = false;
-                        break 'outer;
-                    }
-                }
-            }
-            if enclosed {
-                part2_max_area = area;
-            }
+            // if !intersects {
+            //     println!("pqi[i] = {:?}, pqi[j] = {:?}", pqi[i], pqi[j]);
+            //     println!("({}, {}) -> ({}, {}), area={} intersects={}", x1, y1, x2, y2, area, intersects);
+            // }
         }
     }
-    (part1_max_area, part2_max_area)
+
+    (part1, part2)
 }
 
 #[cfg(test)]
