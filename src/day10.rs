@@ -1,4 +1,4 @@
-use microlp::{Problem, OptimizationDirection, ComparisonOp};
+use microlp::{ComparisonOp, OptimizationDirection, Problem};
 
 pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
@@ -49,45 +49,54 @@ fn encode_target_str(buttons_str: &[u8]) -> BitSet {
 
 fn parse(bytes: &[u8]) -> Vec<Machine> {
     let mut machines = Vec::new();
-    for line in bytes.split(|&b| b == b'\n').filter(|line| !line.is_empty()) {        
-        let split = line.split(|&b| b == b' ').collect::<Vec<&[u8]>>();        
+    for line in bytes.split(|&b| b == b'\n').filter(|line| !line.is_empty()) {
+        let split = line.split(|&b| b == b' ').collect::<Vec<&[u8]>>();
 
         // Split[0]
         let target_str = &split[0][1..split[0].len() - 1];
         let target = encode_target_str(target_str);
 
         // Split[1..split.len() - 1]
-        let buttons: Vec<BitSet> = split[1..split.len() - 1].iter().map(|s| {
-            let buttons_str = &s[1..s.len() - 1];
-            let mut button = BitSet::new();
-            for i_str in buttons_str.split(|&b| b == b',') {
-                let i = (i_str[0] - b'0') as usize;                
-                button.set(i);
-            }
-            button
-        }).collect();
+        let buttons: Vec<BitSet> = split[1..split.len() - 1]
+            .iter()
+            .map(|s| {
+                let buttons_str = &s[1..s.len() - 1];
+                let mut button = BitSet::new();
+                for i_str in buttons_str.split(|&b| b == b',') {
+                    let i = (i_str[0] - b'0') as usize;
+                    button.set(i);
+                }
+                button
+            })
+            .collect();
 
         // Split[split.len() - 1]
         let joltage_str = &split[split.len() - 1][1..split[split.len() - 1].len() - 1];
-        let joltage = joltage_str.split(|&b| b == b',').map(|s| parse_u64(s)).collect();
+        let joltage = joltage_str
+            .split(|&b| b == b',')
+            .map(|s| parse_u64(s))
+            .collect();
 
-        machines.push(Machine { target, buttons, joltage });
+        machines.push(Machine {
+            target,
+            buttons,
+            joltage,
+        });
     }
     machines
 }
 
-
 fn solve_with_lp(machine: &Machine) -> u64 {
     let n_buttons = machine.buttons.len();
     let n_positions = machine.joltage.len();
-    
+
     // We want to minimize: sum of x[j] (L1 norm)
     // Subject to: for each position i, sum over j of (x[j] * button[j].get(i)) = joltage[i]
     // And: x[j] >= 0 for all j
-    
+
     // Create problem: minimize objective
     let mut problem = Problem::new(OptimizationDirection::Minimize);
-    
+
     // Add variables: x[0], x[1], ..., x[n_buttons-1] (number of times to press each button)
     // Each variable has coefficient 1.0 in the objective (L1 norm)
     // Variables are non-negative integers (lower bound 0, upper bound i32::MAX)
@@ -96,7 +105,7 @@ fn solve_with_lp(machine: &Machine) -> u64 {
         let var = problem.add_integer_var(1.0, (0, i32::MAX));
         vars.push(var);
     }
-    
+
     // Add constraints: for each position i, sum of x[j] where button j affects position i = joltage[i]
     for i in 0..n_positions {
         let mut constraint_vars = Vec::new();
@@ -106,23 +115,26 @@ fn solve_with_lp(machine: &Machine) -> u64 {
             }
         }
         if !constraint_vars.is_empty() {
-            problem.add_constraint(&constraint_vars, ComparisonOp::Eq, machine.joltage[i] as f64);
+            problem.add_constraint(
+                &constraint_vars,
+                ComparisonOp::Eq,
+                machine.joltage[i] as f64,
+            );
         }
     }
-    
+
     // Solve
     let solution = problem.solve().expect("Failed to solve LP");
-    
+
     // Extract solution values and compute L1 norm
     // Use var_value_rounded to get integer values (handles floating-point precision issues)
     let mut l1_norm = 0.0;
     for &var in &vars {
         l1_norm += solution.var_value_rounded(var);
     }
-    
+
     l1_norm as u64
 }
-
 
 pub fn solve(bytes: &[u8]) -> (usize, u64) {
     let machines = parse(bytes);

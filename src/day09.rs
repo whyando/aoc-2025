@@ -1,4 +1,4 @@
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 
 pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
@@ -12,6 +12,7 @@ fn parse_i64(bytes: &[u8]) -> i64 {
     num
 }
 
+#[derive(Debug)]
 struct Point {
     x: i64,
     y: i64,
@@ -32,160 +33,205 @@ fn parse_points(bytes: &[u8]) -> Vec<Point> {
     points
 }
 
-fn vertical_edge_inside(
-    hor_segments: &[(i64, i64, i64)],
-    vertical_edge: (i64, i64, i64),
-) -> bool {
-    let (x, y1, y2) = vertical_edge;
-    let y_min = min(y1, y2);
-    let y_max = max(y1, y2);
-    
-    for &hor_segment in hor_segments {
-        let (y, x1, x2) = hor_segment;
-        // Check if the vertical edge crosses this horizontal segment
-        // The edge crosses if: y is between y_min and y_max, and x is between x1 and x2
-        if y_min < y && y < y_max {
-            let x_min = min(x1, x2);
-            let x_max = max(x1, x2);
-            if x_min < x && x < x_max {
-                return true;
-            }
-        }
-    }
-    false
+fn lines_intersect(horizontal_line: (i64, i64, i64), vertical_line: (i64, i64, i64)) -> bool {
+    let (y, x1, x2) = horizontal_line;
+    let (x, y1, y2) = vertical_line;
+    min(x1, x2) <= x && x <= max(x1, x2) && min(y1, y2) <= y && y <= max(y1, y2)
 }
-
-fn horizontal_edge_inside(
-    ver_segments: &[(i64, i64, i64)],
-    horizontal_edge: (i64, i64, i64),
-) -> bool {
-    let (y, x1, x2) = horizontal_edge;
-    let x_min = min(x1, x2);
-    let x_max = max(x1, x2);
-    
-    for &ver_segment in ver_segments {
-        let (x, y1, y2) = ver_segment;
-        // Check if the horizontal edge crosses this vertical segment
-        // The edge crosses if: x is between x_min and x_max, and y is between y1 and y2
-        if x_min < x && x < x_max {
-            let y_min = min(y1, y2);
-            let y_max = max(y1, y2);
-            if y_min < y && y < y_max {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-const NORTH: usize = 0;
-const EAST: usize = 1;
-const SOUTH: usize = 2;
-const WEST: usize = 3;
-
-const QUADRANT_NW: usize = 0;
-const QUADRANT_NE: usize = 1;
-const QUADRANT_SW: usize = 2;
-const QUADRANT_SE: usize = 3;
 
 pub fn solve(bytes: &[u8]) -> (i64, i64) {
     // Parse
-    let points = parse_points(bytes);
+    let original_points = parse_points(bytes);
+    let n = original_points.len();
 
-    let mut ver_segments = vec![];
-    let mut hor_segments = vec![];
+    let mut x = -1;
+    let mut y = -1;
 
-    let mut last_edge_direction = 5;
-    // pqi = point quadrant inside
-    let mut pqi = vec![vec![false; 4]; points.len()]; // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right
-    for i in 0..=points.len() {
-        let i = i % points.len();
-        let j = (i + 1) % points.len();
-        let p1 = &points[i];
-        let p2 = &points[j];
+    // Create a new set of mapped 'shifted' points, where we make the shape very slightly larger
+    let mut points = Vec::with_capacity(n);
+    for i in 0..n + 2 {
+        let p1 = &original_points[i % n];
+        let p2 = &original_points[(i + 1) % n];
 
-        // Determine edge direction: 0 north, 1 east, 2 south, 3 west
-        let edge_direction = if p1.x == p2.x {
-            if p1.y < p2.y {
-                2
+        if p1.x == p2.x {
+            if p2.y > p1.y {
+                // Down
+                x = 2 * p1.x + 1;
             } else {
-                0
+                // Up
+                x = 2 * p1.x - 1;
+            }
+        } else if p1.y == p2.y {
+            if p2.x < p1.x {
+                // Left
+                y = 2 * p1.y + 1;
+            } else {
+                // Right
+                y = 2 * p1.y - 1;
             }
         } else {
-            if p1.x < p2.x {
-                1
+            panic!();
+        }
+        if i >= 2 {
+            points.push(Point { x, y });
+        }
+    }
+    // assert_eq!(n, points.len());
+    // println!("original_points: {:?}", original_points);
+    // println!("points: {:?}", points);
+    // println!("points.len(): {:?}", points.len());
+
+    // Compute all the segments
+    let mut up_segments = vec![];
+    let mut down_segments = vec![];
+    let mut left_segments = vec![];
+    let mut right_segments = vec![];
+    for i in 0..n + 2 {
+        let p1 = &points[i % n];
+        let p2 = &points[(i + 1) % n];
+
+        if p1.x == p2.x {
+            if p2.y > p1.y {
+                // Down
+                down_segments.push((p1.x, p1.y, p2.y));
             } else {
-                3
+                // Up
+                up_segments.push((p1.x, p1.y, p2.y));
             }
+        } else if p1.y == p2.y {
+            if p2.x < p1.x {
+                // Left
+                left_segments.push((p1.y, p1.x, p2.x));
+            } else {
+                // Right
+                right_segments.push((p1.y, p1.x, p2.x));
+            }
+        } else {
+            panic!();
+        }
+    }
+    up_segments.sort_unstable_by_key(|s| s.0);
+    down_segments.sort_unstable_by_key(|s| -s.0);
+    left_segments.sort_unstable_by_key(|s| -s.0);
+    right_segments.sort_unstable_by_key(|s| s.0);
+
+    // For each point, calculate the how far we can go in each direction, before hitting an edge
+    let mut dist = vec![vec![0; 4]; n];
+    for i in 0..n {
+        let px = original_points[i].x * 2;
+        let py = original_points[i].y * 2;
+
+        // West - keep going west till we hit an 'up' segment
+        let mut idx = up_segments.len();
+        while idx != 0 && up_segments[idx - 1].0 > px {
+            idx -= 1;
+        }
+        while idx != 0 && !lines_intersect(up_segments[idx - 1], (py, px, up_segments[idx - 1].0)) {
+            idx -= 1;
+        }
+        dist[i][0] = match idx {
+            0 => i64::MAX,
+            _ => ((px - up_segments[idx - 1].0) - 1) / 2,
         };
 
-        // Handle i==0 case last, since last_edge_direction is undefined
-        if i != 0 {
-            // s = first 'inside' quadrant
-            let mut s = match last_edge_direction {
-                NORTH => QUADRANT_SE,
-                EAST => QUADRANT_SW,
-                SOUTH => QUADRANT_NW,
-                WEST => QUADRANT_NE,
-                _ => panic!(),
-            };
-            // t = final 'inside' quadrant
-            let t = match edge_direction {
-                NORTH => QUADRANT_NE,
-                EAST => QUADRANT_SE,
-                SOUTH => QUADRANT_SW,
-                WEST => QUADRANT_NW,
-                _ => panic!(),
-            };
-            while s != t {
-                pqi[i][s] = true;
-                s = (s + 1) % 4;
-            }
-            pqi[i][t] = true;            
-
-            if p1.x == p2.x {
-                ver_segments.push((p1.x, p1.y, p2.y));
-            } else if p1.y == p2.y {
-                hor_segments.push((p1.y, p1.x, p2.x));
-            } else {
-                panic!();
-            }
+        // East - keep going east till we hit an 'down' segment
+        let mut idx = down_segments.len();
+        while idx != 0 && down_segments[idx - 1].0 < px {
+            idx -= 1;
         }
-        last_edge_direction = edge_direction;
-    }
+        while idx != 0
+            && !lines_intersect(down_segments[idx - 1], (py, px, down_segments[idx - 1].0))
+        {
+            idx -= 1;
+        }
+        dist[i][1] = match idx {
+            0 => i64::MAX,
+            _ => ((down_segments[idx - 1].0 - px) - 1) / 2,
+        };
 
-    ver_segments.sort_unstable_by_key(|s| s.0);
-    hor_segments.sort_unstable_by_key(|s| s.0);
+        // North - keep going north till we hit a 'right' segment
+        let mut idx = right_segments.len();
+        while idx != 0 && right_segments[idx - 1].0 > py {
+            idx -= 1;
+        }
+        while idx != 0
+            && !lines_intersect((px, py, right_segments[idx - 1].0), right_segments[idx - 1])
+        {
+            idx -= 1;
+        }
+        dist[i][2] = match idx {
+            0 => i64::MAX,
+            _ => ((py - right_segments[idx - 1].0) - 1) / 2,
+        };
+
+        // South - keep going south till we hit a 'left' segment
+        let mut idx = left_segments.len();
+        while idx != 0 && left_segments[idx - 1].0 < py {
+            idx -= 1;
+        }
+        while idx != 0
+            && !lines_intersect((px, py, left_segments[idx - 1].0), left_segments[idx - 1])
+        {
+            idx -= 1;
+        }
+        dist[i][3] = match idx {
+            0 => i64::MAX,
+            _ => ((left_segments[idx - 1].0 - py) - 1) / 2,
+        };
+
+        // println!("({}, {}): dist[i][west] = {}", original_points[i].x, original_points[i].y, dist[i][0]);
+        // println!("({}, {}): dist[i][east] = {}", original_points[i].x, original_points[i].y, dist[i][1]);
+        // println!("({}, {}): dist[i][north] = {}", original_points[i].x, original_points[i].y, dist[i][2]);
+        // println!("({}, {}): dist[i][south] = {}", original_points[i].x, original_points[i].y, dist[i][3]);
+        // println!("");
+    }
 
     let mut part1 = 0;
     let mut part2 = 0;
 
-    for i in 0..points.len() {
-        for j in i + 1..points.len() {
-            let x1 = points[i].x;
-            let y1 = points[i].y;
-            let x2 = points[j].x;
-            let y2 = points[j].y;
+    // For each pair of points
+    for i in 0..n {
+        for j in i + 1..n {
+            let p1 = &original_points[i];
+            let p2 = &original_points[j];
 
-            let vert_edge1 = (x1, y1, y2);
-            let vert_edge2 = (x2, y1, y2);
-            let hor_edge1 = (y1, x1, x2);
-            let hor_edge2 = (y2, x1, x2);
+            let area = ((p1.x - p2.x).abs() + 1) * ((p1.y - p2.y).abs() + 1);
+            part1 = max(part1, area);
 
-            // Check for intersections (linear at first)
-            let area = ((x2 - x1).abs() + 1) * ((y2 - y1).abs() + 1);
-            part1 = std::cmp::max(part1, area);
-            let intersects = vertical_edge_inside(&hor_segments, vert_edge1)
-                && vertical_edge_inside(&hor_segments, vert_edge2)
-                && horizontal_edge_inside(&ver_segments, hor_edge1)
-                && horizontal_edge_inside(&ver_segments, hor_edge2);
-            if !intersects {
-                part2 = std::cmp::max(part2, area);
+            if p2.x < p1.x {
+                // West from p1
+                // req dist[i][west] >= p1.x - p2.x
+                // req dist[j][east] >= p1.x - p2.x
+                if !(dist[i][0] >= p1.x - p2.x && dist[j][1] >= p1.x - p2.x) {
+                    continue;
+                }
+            } else {
+                // East from p1
+                // req dist[i][east] >= p2.x - p1.x
+                // req dist[j][west] >= p2.x - p1.x
+                if !(dist[i][1] >= p2.x - p1.x && dist[j][0] >= p2.x - p1.x) {
+                    continue;
+                }
             }
-            // if !intersects {
-            //     println!("pqi[i] = {:?}, pqi[j] = {:?}", pqi[i], pqi[j]);
-            //     println!("({}, {}) -> ({}, {}), area={} intersects={}", x1, y1, x2, y2, area, intersects);
-            // }
+
+            if p2.y < p1.y {
+                // North from p1
+                // req dist[i][north] >= p1.y - p2.y
+                // req dist[j][south] >= p1.y - p2.y
+                if !(dist[i][2] >= p1.y - p2.y && dist[j][3] >= p1.y - p2.y) {
+                    continue;
+                }
+            } else {
+                // South from p1
+                // req dist[i][south] >= p2.y - p1.x
+                // req dist[j][north] >= p2.y - p1.x
+                if !(dist[i][3] >= p2.y - p1.x && dist[j][2] >= p2.y - p1.x) {
+                    continue;
+                }
+            }
+
+            // We have a valid pair
+            part2 = max(part2, area);
         }
     }
 

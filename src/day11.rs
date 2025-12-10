@@ -2,7 +2,7 @@ pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
 }
 
-pub fn solve(bytes: &[u8]) -> (u64, u64) {
+pub fn solve(_bytes: &[u8]) -> (u64, u64) {
     (0, 0)
 }
 
