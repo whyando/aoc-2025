@@ -142,7 +142,6 @@ pub fn solve(bytes: &[u8]) -> (usize, u64) {
     let mut part1 = 0;
     for machine in machines {
         let mut min_presses = usize::MAX;
-        println!("machine: {:?}", machine);
         let n = machine.buttons.len();
         // Try 2^n combinations of button presses
         for i in 0..(1 << n) {
