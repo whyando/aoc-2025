@@ -33,10 +33,11 @@ fn parse_points(bytes: &[u8]) -> Vec<Point> {
     points
 }
 
+#[inline(always)]
 fn lines_intersect(horizontal_line: (i64, i64, i64), vertical_line: (i64, i64, i64)) -> bool {
     let (y, x1, x2) = horizontal_line;
     let (x, y1, y2) = vertical_line;
-    min(x1, x2) <= x && x <= max(x1, x2) && min(y1, y2) <= y && y <= max(y1, y2)
+    x1 <= x && x <= x2 && y1 <= y && y <= y2
 }
 
 pub fn solve(bytes: &[u8]) -> (i64, i64) {
@@ -76,10 +77,6 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             points.push(Point { x, y });
         }
     }
-    // assert_eq!(n, points.len());
-    // println!("original_points: {:?}", original_points);
-    // println!("points: {:?}", points);
-    // println!("points.len(): {:?}", points.len());
 
     // Compute all the segments
     let mut up_segments = vec![];
@@ -93,18 +90,18 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         if p1.x == p2.x {
             if p2.y > p1.y {
                 // Down
-                down_segments.push((p1.x, p1.y, p2.y));
+                down_segments.push((p1.x, min(p1.y, p2.y), max(p1.y, p2.y)));
             } else {
                 // Up
-                up_segments.push((p1.x, p1.y, p2.y));
+                up_segments.push((p1.x, min(p1.y, p2.y), max(p1.y, p2.y)));
             }
         } else if p1.y == p2.y {
             if p2.x < p1.x {
                 // Left
-                left_segments.push((p1.y, p1.x, p2.x));
+                left_segments.push((p1.y, min(p1.x, p2.x), max(p1.x, p2.x)));
             } else {
                 // Right
-                right_segments.push((p1.y, p1.x, p2.x));
+                right_segments.push((p1.y, min(p1.x, p2.x), max(p1.x, p2.x)));
             }
         } else {
             panic!();
@@ -117,73 +114,43 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
 
     // For each point, calculate the how far we can go in each direction, before hitting an edge
     let mut dist = vec![vec![0; 4]; n];
-    for i in 0..n {
+    for i in (0..n).rev() {
         let px = original_points[i].x * 2;
         let py = original_points[i].y * 2;
 
         // West - keep going west till we hit an 'up' segment
-        let mut idx = up_segments.len();
-        while idx != 0 && up_segments[idx - 1].0 > px {
+        let mut idx = up_segments.partition_point(|&seg| seg.0 <= px);
+        while idx != 0 && !lines_intersect(up_segments[idx - 1], (py, up_segments[idx - 1].0, px)) {
             idx -= 1;
         }
-        while idx != 0 && !lines_intersect(up_segments[idx - 1], (py, px, up_segments[idx - 1].0)) {
-            idx -= 1;
-        }
-        dist[i][0] = match idx {
-            0 => i64::MAX,
-            _ => ((px - up_segments[idx - 1].0) - 1) / 2,
-        };
+        dist[i][0] = (px - up_segments[idx - 1].0 - 1) / 2;
 
         // East - keep going east till we hit an 'down' segment
-        let mut idx = down_segments.len();
-        while idx != 0 && down_segments[idx - 1].0 < px {
-            idx -= 1;
-        }
+        let mut idx = down_segments.partition_point(|&seg| seg.0 >= px);
         while idx != 0
             && !lines_intersect(down_segments[idx - 1], (py, px, down_segments[idx - 1].0))
         {
             idx -= 1;
         }
-        dist[i][1] = match idx {
-            0 => i64::MAX,
-            _ => ((down_segments[idx - 1].0 - px) - 1) / 2,
-        };
+        dist[i][1] = (down_segments[idx - 1].0 - px - 1) / 2;
 
         // North - keep going north till we hit a 'right' segment
-        let mut idx = right_segments.len();
-        while idx != 0 && right_segments[idx - 1].0 > py {
-            idx -= 1;
-        }
+        let mut idx = right_segments.partition_point(|&seg| seg.0 <= py);
         while idx != 0
-            && !lines_intersect((px, py, right_segments[idx - 1].0), right_segments[idx - 1])
+            && !lines_intersect((px, right_segments[idx - 1].0, py), right_segments[idx - 1])
         {
             idx -= 1;
         }
-        dist[i][2] = match idx {
-            0 => i64::MAX,
-            _ => ((py - right_segments[idx - 1].0) - 1) / 2,
-        };
+        dist[i][2] = (py - right_segments[idx - 1].0 - 1) / 2;
 
         // South - keep going south till we hit a 'left' segment
-        let mut idx = left_segments.len();
-        while idx != 0 && left_segments[idx - 1].0 < py {
-            idx -= 1;
-        }
+        let mut idx = left_segments.partition_point(|&seg| seg.0 >= py);
         while idx != 0
             && !lines_intersect((px, py, left_segments[idx - 1].0), left_segments[idx - 1])
         {
             idx -= 1;
         }
-        dist[i][3] = match idx {
-            0 => i64::MAX,
-            _ => ((left_segments[idx - 1].0 - py) - 1) / 2,
-        };
-
-        // println!("({}, {}): dist[i][west] = {}", original_points[i].x, original_points[i].y, dist[i][0]);
-        // println!("({}, {}): dist[i][east] = {}", original_points[i].x, original_points[i].y, dist[i][1]);
-        // println!("({}, {}): dist[i][north] = {}", original_points[i].x, original_points[i].y, dist[i][2]);
-        // println!("({}, {}): dist[i][south] = {}", original_points[i].x, original_points[i].y, dist[i][3]);
-        // println!("");
+        dist[i][3] = (left_segments[idx - 1].0 - py - 1) / 2;
     }
 
     let mut part1 = 0;
@@ -197,6 +164,10 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
 
             let area = ((p1.x - p2.x).abs() + 1) * ((p1.y - p2.y).abs() + 1);
             part1 = max(part1, area);
+
+            if area < part2 {
+                continue;
+            }
 
             if p2.x < p1.x {
                 // West from p1
@@ -231,7 +202,7 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             }
 
             // We have a valid pair
-            part2 = max(part2, area);
+            part2 = area;
         }
     }
 
