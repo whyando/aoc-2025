@@ -38,12 +38,12 @@ fn main() {
         let input = aoc_2025::day09::read(&aoc_input).unwrap();
         let (p1, p2) = aoc_2025::day09::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+    } else if aoc_day == "10" {
+        let input = aoc_2025::day10::read(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day10::solve(&input);
+        println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
     }
-    // else if aoc_day == "10" {
-    //     let input = aoc_2025::day10::read(&aoc_input).unwrap();
-    //     let (p1, p2) = aoc_2025::day10::solve(&input);
-    //     println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
-    // } else if aoc_day == "11" {
+    // else if aoc_day == "11" {
     //     let input = aoc_2025::day11::read(&aoc_input).unwrap();
     //     let (p1, p2) = aoc_2025::day11::solve(&input);
     //     println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
