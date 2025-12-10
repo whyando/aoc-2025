@@ -166,7 +166,7 @@ pub fn solve(bytes: &[u8]) -> (usize, u64) {
     let machines = parse(bytes);
     for machine in machines {
         // Part 2:
-        // construct linear system, then solve with simplex method
+        // construct linear system, then solve with microlp crate (probably branch and bound + simplex)
         // finding positive integer solution with minimum L1 norm
         let cost = solve_with_lp(&machine);
         part2 += cost;
