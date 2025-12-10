@@ -50,6 +50,10 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
 
     // Create a new set of mapped 'shifted' points, where we make the shape very slightly larger
     let mut points = Vec::with_capacity(n);
+    let mut longest_left_segment_length = 0;
+    let mut longest_left_segment_point_idx = 0;
+    let mut longest_right_segment_length = 0;
+    let mut longest_right_segment_point_idx = 0;
     for i in 0..n + 2 {
         let p1 = &original_points[i % n];
         let p2 = &original_points[(i + 1) % n];
@@ -66,9 +70,17 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
             if p2.x < p1.x {
                 // Left
                 y = 2 * p1.y + 1;
+                if p1.x - p2.x > longest_left_segment_length {
+                    longest_left_segment_length = p1.x - p2.x;
+                    longest_left_segment_point_idx = i % n;
+                }
             } else {
                 // Right
                 y = 2 * p1.y - 1;
+                if p2.x - p1.x > longest_right_segment_length {
+                    longest_right_segment_length = p2.x - p1.x;
+                    longest_right_segment_point_idx = (i + 1) % n;
+                }
             }
         } else {
             panic!();
@@ -83,6 +95,7 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
     let mut down_segments = vec![];
     let mut left_segments = vec![];
     let mut right_segments = vec![];
+
     for i in 0..n + 2 {
         let p1 = &points[i % n];
         let p2 = &points[(i + 1) % n];
@@ -161,11 +174,30 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
         for j in i + 1..n {
             let p1 = &original_points[i];
             let p2 = &original_points[j];
+            let area = ((p1.x - p2.x).abs() + 1) * ((p1.y - p2.y).abs() + 1);
+            part1 = max(part1, area);
+        }
+    }
+
+    // Speed up the search by assuming that the solution always contains the rightmost point
+    // of one of the longest 2 segments
+    // If we checked each pair of points, this would be a fully general solution
+    for i in [
+        longest_left_segment_point_idx,
+        longest_right_segment_point_idx,
+    ] {
+        for j in 0..n {
+            if j == longest_left_segment_point_idx || j == longest_right_segment_point_idx {
+                continue;
+            }
+
+            let p1 = &original_points[i];
+            let p2 = &original_points[j];
 
             let area = ((p1.x - p2.x).abs() + 1) * ((p1.y - p2.y).abs() + 1);
             part1 = max(part1, area);
 
-            if area < part2 {
+            if area <= part2 {
                 continue;
             }
 
@@ -194,9 +226,9 @@ pub fn solve(bytes: &[u8]) -> (i64, i64) {
                 }
             } else {
                 // South from p1
-                // req dist[i][south] >= p2.y - p1.x
-                // req dist[j][north] >= p2.y - p1.x
-                if !(dist[i][3] >= p2.y - p1.x && dist[j][2] >= p2.y - p1.x) {
+                // req dist[i][south] >= p2.y - p1.y
+                // req dist[j][north] >= p2.y - p1.y
+                if !(dist[i][3] >= p2.y - p1.y && dist[j][2] >= p2.y - p1.y) {
                     continue;
                 }
             }
