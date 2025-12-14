@@ -29,7 +29,7 @@ fn parse(bytes: &[u8]) -> Vec<Vec<usize>> {
     string_to_id.insert(parse_key(b"dac"), ID_DAC);
 
     // Initialize vector with empty vecs for reserved IDs
-    let mut edges_inv = vec![Vec::new(); 5];
+    let mut edges = vec![Vec::new(); 5];
 
     for line in bytes.split(|&b| b == b'\n').filter(|line| !line.is_empty()) {
         let colon_idx = line.iter().position(|&b| b == b':').unwrap();
@@ -37,10 +37,9 @@ fn parse(bytes: &[u8]) -> Vec<Vec<usize>> {
         let value_bytes = &line[colon_idx + 2..];
 
         let key = parse_key(&key_bytes);
-        let key_id = *string_to_id.entry(key).or_insert_with(|| {
+        let x = *string_to_id.entry(key).or_insert_with(|| {
             let id = next_id;
             next_id += 1;
-            edges_inv.push(Vec::new());
             id
         });
 
@@ -49,26 +48,30 @@ fn parse(bytes: &[u8]) -> Vec<Vec<usize>> {
             .map(|s| parse_key(s.try_into().unwrap()))
             .collect::<Vec<_>>();
 
-        for value_str in values {
-            let value_id = *string_to_id.entry(value_str).or_insert_with(|| {
-                let id = next_id;
-                next_id += 1;
-                edges_inv.push(Vec::new());
-                id
-            });
-            edges_inv[value_id as usize].push(key_id);
+        let x_edges = values
+            .iter()
+            .map(|&value_str| {
+                *string_to_id.entry(value_str).or_insert_with(|| {
+                    let id = next_id;
+                    next_id += 1;
+                    id
+                })
+            })
+            .collect::<Vec<_>>();
+        if x >= edges.len() {
+            edges.resize(x + 1, Vec::new());
         }
+        edges[x] = x_edges;
     }
-
-    edges_inv
+    edges
 }
 
 const ENTER: bool = false;
 const EXIT: bool = true;
 
 pub fn solve(bytes: &[u8]) -> (u64, u64) {
-    let edges_inv = parse(bytes);
-    let n = edges_inv.len();
+    let edges = parse(bytes);
+    let n = edges.len();
 
     // Topological sort the graph (DFS)
     let mut stack = vec![];
@@ -85,7 +88,7 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
                 if state[i] == 0 {
                     state[i] = 1;
                     stack.push((i, EXIT));
-                    for &j in &edges_inv[i] {
+                    for &j in &edges[i] {
                         stack.push((j, ENTER));
                     }
                 }
@@ -97,25 +100,25 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
         }
     }
 
-    let mut paths_from_you = vec![0; n];
-    let mut paths_from_svr = vec![0; n];
-    let mut paths_from_fft = vec![0; n];
-    let mut paths_from_dac = vec![0; n];
-    paths_from_you[ID_YOU] = 1;
-    paths_from_svr[ID_SVR] = 1;
-    paths_from_fft[ID_FFT] = 1;
-    paths_from_dac[ID_DAC] = 1;
-    for x in order.iter() {
-        for &y in &edges_inv[*x] {
-            paths_from_you[*x] += paths_from_you[y];
-            paths_from_svr[*x] += paths_from_svr[y];
-            paths_from_fft[*x] += paths_from_fft[y];
-            paths_from_dac[*x] += paths_from_dac[y];
+    let mut paths_to_out = vec![0; n];
+    let mut paths_to_fft = vec![0; n];
+    let mut paths_to_dac = vec![0; n];
+    let mut paths_to_svr = vec![0; n];
+    paths_to_out[ID_OUT] = 1;
+    paths_to_fft[ID_FFT] = 1;
+    paths_to_dac[ID_DAC] = 1;
+    paths_to_svr[ID_SVR] = 1;
+    for x in order {
+        for &y in &edges[x] {
+            paths_to_out[x] += paths_to_out[y];
+            paths_to_fft[x] += paths_to_fft[y];
+            paths_to_dac[x] += paths_to_dac[y];
+            paths_to_svr[x] += paths_to_svr[y];
         }
     }
-    let part1 = paths_from_you[ID_OUT];
-    let part2 = paths_from_svr[ID_FFT] * paths_from_fft[ID_DAC] * paths_from_dac[ID_OUT]
-        + paths_from_svr[ID_DAC] * paths_from_dac[ID_FFT] * paths_from_fft[ID_OUT];
+    let part1 = paths_to_out[ID_YOU];
+    let part2 = paths_to_out[ID_FFT] * paths_to_fft[ID_DAC] * paths_to_dac[ID_SVR]
+        + paths_to_out[ID_DAC] * paths_to_dac[ID_FFT] * paths_to_fft[ID_SVR];
 
     (part1, part2)
 }
