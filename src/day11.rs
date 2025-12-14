@@ -5,19 +5,21 @@ pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
 }
 
 // Hardcoded IDs for special nodes
-const ID_YOU: u32 = 0;
-const ID_OUT: u32 = 1;
-const ID_SVR: u32 = 2;
-const ID_FFT: u32 = 3;
-const ID_DAC: u32 = 4;
+const ID_YOU: usize = 0;
+const ID_OUT: usize = 1;
+const ID_SVR: usize = 2;
+const ID_FFT: usize = 3;
+const ID_DAC: usize = 4;
 
-fn parse_key(bytes: &[u8; 3]) -> u32 {
-    (bytes[0] - b'a') as u32 * 26 * 26 + (bytes[1] - b'a') as u32 * 26 + (bytes[2] - b'a') as u32
+fn parse_key(bytes: &[u8; 3]) -> usize {
+    (bytes[0] - b'a') as usize * 26 * 26
+        + (bytes[1] - b'a') as usize * 26
+        + (bytes[2] - b'a') as usize
 }
 
-fn parse(bytes: &[u8]) -> Vec<Vec<u32>> {
+fn parse(bytes: &[u8]) -> Vec<Vec<usize>> {
     let mut string_to_id = HashMap::new();
-    let mut next_id = 5u32; // Start after reserved IDs
+    let mut next_id = 5usize; // Start after reserved IDs
 
     // Initialize reserved IDs
     string_to_id.insert(parse_key(b"you"), ID_YOU);
@@ -61,46 +63,60 @@ fn parse(bytes: &[u8]) -> Vec<Vec<u32>> {
     edges_inv
 }
 
+const ENTER: bool = false;
+const EXIT: bool = true;
+
 pub fn solve(bytes: &[u8]) -> (u64, u64) {
     let edges_inv = parse(bytes);
+    let n = edges_inv.len();
 
-    let part1 = count_paths(&edges_inv, ID_YOU, ID_OUT);
+    // Topological sort the graph (DFS)
+    let mut stack = vec![];
+    let mut order = Vec::with_capacity(n);
+    let mut state = vec![0; n];
 
-    let route1 = count_paths(&edges_inv, ID_SVR, ID_FFT)
-        * count_paths(&edges_inv, ID_FFT, ID_DAC)
-        * count_paths(&edges_inv, ID_DAC, ID_OUT);
-
-    let route2 = count_paths(&edges_inv, ID_SVR, ID_DAC)
-        * count_paths(&edges_inv, ID_DAC, ID_FFT)
-        * count_paths(&edges_inv, ID_FFT, ID_OUT);
-
-    (part1, route1 + route2)
-}
-
-fn count_paths(edges_inv: &[Vec<u32>], start: u32, end: u32) -> u64 {
-    let mut cache = HashMap::new();
-    f(edges_inv, start, end, &mut cache)
-}
-
-fn f(edges_inv: &[Vec<u32>], start: u32, x: u32, cache: &mut HashMap<u32, u64>) -> u64 {
-    if let Some(&result) = cache.get(&x) {
-        return result;
+    for i in 0..n {
+        stack.push((i, ENTER));
     }
-    let result = f_inner(edges_inv, start, x, cache);
-    cache.insert(x, result);
-    result
-}
 
-fn f_inner(edges_inv: &[Vec<u32>], start: u32, x: u32, cache: &mut HashMap<u32, u64>) -> u64 {
-    if x == start {
-        return 1;
+    while let Some((i, dir)) = stack.pop() {
+        match dir {
+            ENTER => {
+                if state[i] == 0 {
+                    state[i] = 1;
+                    stack.push((i, EXIT));
+                    for &j in &edges_inv[i] {
+                        stack.push((j, ENTER));
+                    }
+                }
+            }
+            EXIT => {
+                order.push(i);
+                state[i] = 2;
+            }
+        }
     }
-    let x_idx = x as usize;
-    if x_idx >= edges_inv.len() {
-        return 0;
+
+    let mut paths_from_you = vec![0; n];
+    let mut paths_from_svr = vec![0; n];
+    let mut paths_from_fft = vec![0; n];
+    let mut paths_from_dac = vec![0; n];
+    paths_from_you[ID_YOU] = 1;
+    paths_from_svr[ID_SVR] = 1;
+    paths_from_fft[ID_FFT] = 1;
+    paths_from_dac[ID_DAC] = 1;
+    for x in order.iter() {
+        for &y in &edges_inv[*x] {
+            paths_from_you[*x] += paths_from_you[y];
+            paths_from_svr[*x] += paths_from_svr[y];
+            paths_from_fft[*x] += paths_from_fft[y];
+            paths_from_dac[*x] += paths_from_dac[y];
+        }
     }
-    let edges = &edges_inv[x_idx];
-    edges.iter().map(|&y| f(edges_inv, start, y, cache)).sum()
+    let part1 = paths_from_you[ID_OUT];
+    let part2 = paths_from_svr[ID_FFT] * paths_from_fft[ID_DAC] * paths_from_dac[ID_OUT];
+
+    (part1, part2)
 }
 
 #[cfg(test)]
