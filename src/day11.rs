@@ -4,77 +4,103 @@ pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
     Ok(std::fs::read(path)?)
 }
 
-fn parse(bytes: &[u8]) -> HashMap<String, Vec<String>> {
-    let mut map = HashMap::new();
+// Hardcoded IDs for special nodes
+const ID_YOU: u32 = 0;
+const ID_OUT: u32 = 1;
+const ID_SVR: u32 = 2;
+const ID_FFT: u32 = 3;
+const ID_DAC: u32 = 4;
+
+fn parse_key(bytes: &[u8; 3]) -> u32 {
+    (bytes[0] - b'a') as u32 * 26 * 26 + (bytes[1] - b'a') as u32 * 26 + (bytes[2] - b'a') as u32
+}
+
+fn parse(bytes: &[u8]) -> Vec<Vec<u32>> {
+    let mut string_to_id = HashMap::new();
+    let mut next_id = 5u32; // Start after reserved IDs
+
+    // Initialize reserved IDs
+    string_to_id.insert(parse_key(b"you"), ID_YOU);
+    string_to_id.insert(parse_key(b"out"), ID_OUT);
+    string_to_id.insert(parse_key(b"svr"), ID_SVR);
+    string_to_id.insert(parse_key(b"fft"), ID_FFT);
+    string_to_id.insert(parse_key(b"dac"), ID_DAC);
+
+    // Initialize vector with empty vecs for reserved IDs
+    let mut edges_inv = vec![Vec::new(); 5];
+
     for line in bytes.split(|&b| b == b'\n').filter(|line| !line.is_empty()) {
         let colon_idx = line.iter().position(|&b| b == b':').unwrap();
-        let key = &line[..colon_idx];
-        let value = &line[colon_idx + 2..];
-        let split = value.split(|&b| b == b' ').collect::<Vec<&[u8]>>();
-        let values = split
-            .iter()
-            .map(|s| String::from_utf8(s.to_vec()).unwrap())
-            .collect();
-        map.insert(String::from_utf8(key.to_vec()).unwrap(), values);
+        let key_bytes: [u8; 3] = line[..colon_idx].try_into().unwrap();
+        let value_bytes = &line[colon_idx + 2..];
+
+        let key = parse_key(&key_bytes);
+        let key_id = *string_to_id.entry(key).or_insert_with(|| {
+            let id = next_id;
+            next_id += 1;
+            edges_inv.push(Vec::new());
+            id
+        });
+
+        let values = value_bytes
+            .split(|&b| b == b' ')
+            .map(|s| parse_key(s.try_into().unwrap()))
+            .collect::<Vec<_>>();
+
+        for value_str in values {
+            let value_id = *string_to_id.entry(value_str).or_insert_with(|| {
+                let id = next_id;
+                next_id += 1;
+                edges_inv.push(Vec::new());
+                id
+            });
+            edges_inv[value_id as usize].push(key_id);
+        }
     }
-    map
+
+    edges_inv
 }
 
 pub fn solve(bytes: &[u8]) -> (u64, u64) {
-    let edges = parse(bytes);
-    let edges_inv: HashMap<String, Vec<String>> = {
-        let mut map = HashMap::new();
-        for (key, values) in edges.iter() {
-            for value in values {
-                map.entry(value.clone()).or_insert(vec![]).push(key.clone());
-            }
-        }
-        map
-    };
+    let edges_inv = parse(bytes);
 
-    let part1 = count_paths(&edges_inv, "you", "out");
-    let route1 = count_paths(&edges_inv, "svr", "fft")
-        * count_paths(&edges_inv, "fft", "dac")
-        * count_paths(&edges_inv, "dac", "out");
-    let route2 = count_paths(&edges_inv, "svr", "dac")
-        * count_paths(&edges_inv, "dac", "fft")
-        * count_paths(&edges_inv, "fft", "out");
+    let part1 = count_paths(&edges_inv, ID_YOU, ID_OUT);
+
+    let route1 = count_paths(&edges_inv, ID_SVR, ID_FFT)
+        * count_paths(&edges_inv, ID_FFT, ID_DAC)
+        * count_paths(&edges_inv, ID_DAC, ID_OUT);
+
+    let route2 = count_paths(&edges_inv, ID_SVR, ID_DAC)
+        * count_paths(&edges_inv, ID_DAC, ID_FFT)
+        * count_paths(&edges_inv, ID_FFT, ID_OUT);
+
     (part1, route1 + route2)
 }
 
-fn count_paths(edges_inv: &HashMap<String, Vec<String>>, start: &str, end: &str) -> u64 {
+fn count_paths(edges_inv: &[Vec<u32>], start: u32, end: u32) -> u64 {
     let mut cache = HashMap::new();
     f(edges_inv, start, end, &mut cache)
 }
 
-fn f(
-    edges_inv: &HashMap<String, Vec<String>>,
-    start: &str,
-    x: &str,
-    cache: &mut HashMap<String, u64>,
-) -> u64 {
-    if let Some(&result) = cache.get(x) {
+fn f(edges_inv: &[Vec<u32>], start: u32, x: u32, cache: &mut HashMap<u32, u64>) -> u64 {
+    if let Some(&result) = cache.get(&x) {
         return result;
     }
-    let result = f_inner(edges_inv, &start, x, cache);
-    cache.insert(x.to_string(), result);
+    let result = f_inner(edges_inv, start, x, cache);
+    cache.insert(x, result);
     result
 }
 
-fn f_inner(
-    edges_inv: &HashMap<String, Vec<String>>,
-    start: &str,
-    x: &str,
-    cache: &mut HashMap<String, u64>,
-) -> u64 {
+fn f_inner(edges_inv: &[Vec<u32>], start: u32, x: u32, cache: &mut HashMap<u32, u64>) -> u64 {
     if x == start {
         return 1;
     }
-    let edges = match edges_inv.get(x) {
-        Some(edges) => edges,
-        None => return 0,
-    };
-    edges.iter().map(|y| f(edges_inv, start, y, cache)).sum()
+    let x_idx = x as usize;
+    if x_idx >= edges_inv.len() {
+        return 0;
+    }
+    let edges = &edges_inv[x_idx];
+    edges.iter().map(|&y| f(edges_inv, start, y, cache)).sum()
 }
 
 #[cfg(test)]
