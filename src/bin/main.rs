@@ -42,17 +42,15 @@ fn main() {
         let input = aoc_2025::day10::read(&aoc_input).unwrap();
         let (p1, p2) = aoc_2025::day10::solve(&input);
         println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
-    }
-    // else if aoc_day == "11" {
-    //     let input = aoc_2025::day11::read(&aoc_input).unwrap();
-    //     let (p1, p2) = aoc_2025::day11::solve(&input);
-    //     println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
-    // } else if aoc_day == "12" {
-    //     let input = aoc_2025::day12::read(&aoc_input).unwrap();
-    //     let (p1, p2) = aoc_2025::day12::solve(&input);
-    //     println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
-    // }
-    else {
+    } else if aoc_day == "11" {
+        let input = aoc_2025::day11::read(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day11::solve(&input);
+        println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+    } else if aoc_day == "12" {
+        let input = aoc_2025::day12::read(&aoc_input).unwrap();
+        let (p1, p2) = aoc_2025::day12::solve(&input);
+        println!(r#"{{"part_one": {}, "part_two": {}}}"#, p1, p2);
+    } else {
         println!("\"not implemented\"");
         std::process::exit(0);
     }
