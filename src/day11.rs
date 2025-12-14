@@ -114,7 +114,8 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
         }
     }
     let part1 = paths_from_you[ID_OUT];
-    let part2 = paths_from_svr[ID_FFT] * paths_from_fft[ID_DAC] * paths_from_dac[ID_OUT];
+    let part2 = paths_from_svr[ID_FFT] * paths_from_fft[ID_DAC] * paths_from_dac[ID_OUT]
+        + paths_from_svr[ID_DAC] * paths_from_dac[ID_FFT] * paths_from_fft[ID_OUT];
 
     (part1, part2)
 }
