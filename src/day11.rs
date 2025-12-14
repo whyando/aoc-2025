@@ -74,9 +74,9 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
     let n = edges.len();
 
     // Topological sort the graph (DFS)
-    let mut stack = vec![];
+    let mut stack = Vec::with_capacity(2 * n);
     let mut order = Vec::with_capacity(n);
-    let mut state = vec![0; n];
+    let mut visited = vec![false; n];
 
     for i in 0..n {
         stack.push((i, ENTER));
@@ -85,8 +85,8 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
     while let Some((i, dir)) = stack.pop() {
         match dir {
             ENTER => {
-                if state[i] == 0 {
-                    state[i] = 1;
+                if !visited[i] {
+                    visited[i] = true;
                     stack.push((i, EXIT));
                     for &j in &edges[i] {
                         stack.push((j, ENTER));
@@ -95,7 +95,6 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
             }
             EXIT => {
                 order.push(i);
-                state[i] = 2;
             }
         }
     }
@@ -103,23 +102,19 @@ pub fn solve(bytes: &[u8]) -> (u64, u64) {
     let mut paths_to_out = vec![0; n];
     let mut paths_to_fft = vec![0; n];
     let mut paths_to_dac = vec![0; n];
-    let mut paths_to_svr = vec![0; n];
     paths_to_out[ID_OUT] = 1;
     paths_to_fft[ID_FFT] = 1;
     paths_to_dac[ID_DAC] = 1;
-    paths_to_svr[ID_SVR] = 1;
     for x in order {
         for &y in &edges[x] {
             paths_to_out[x] += paths_to_out[y];
             paths_to_fft[x] += paths_to_fft[y];
             paths_to_dac[x] += paths_to_dac[y];
-            paths_to_svr[x] += paths_to_svr[y];
         }
     }
     let part1 = paths_to_out[ID_YOU];
     let part2 = paths_to_out[ID_FFT] * paths_to_fft[ID_DAC] * paths_to_dac[ID_SVR]
         + paths_to_out[ID_DAC] * paths_to_dac[ID_FFT] * paths_to_fft[ID_SVR];
-
     (part1, part2)
 }
 
