@@ -6,7 +6,7 @@ pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
 
 fn parse(bytes: &[u8]) -> HashMap<String, Vec<String>> {
     let mut map = HashMap::new();
-    for line in bytes.split(|&b| b == b'\n') {
+    for line in bytes.split(|&b| b == b'\n').filter(|line| !line.is_empty()) {
         let colon_idx = line.iter().position(|&b| b == b':').unwrap();
         let key = &line[..colon_idx];
         let value = &line[colon_idx + 2..];

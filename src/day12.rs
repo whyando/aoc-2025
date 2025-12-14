@@ -4,9 +4,6 @@ pub fn read(path: &str) -> Result<Vec<u8>, std::io::Error> {
 
 #[derive(Debug)]
 struct Shape {
-    width: usize,
-    height: usize,
-    data: Vec<Vec<u8>>,
     area: usize,
 }
 
@@ -56,17 +53,8 @@ fn parse_input(bytes: &[u8]) -> Problem {
             .take(3)
             .map(|line| line.to_vec())
             .collect();
-        if shape_lines.len() == 3 {
-            let width = 3;
-            let height = 3;
-            let area = shape_lines.iter().flatten().filter(|&&b| b == b'#').count();
-            shapes.push(Shape {
-                width,
-                height,
-                data: shape_lines,
-                area,
-            });
-        }
+        let area = shape_lines.iter().flatten().filter(|&&b| b == b'#').count();
+        shapes.push(Shape { area });
     }
 
     // Parse remaining sections as regions
